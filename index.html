@@ -7,18 +7,168 @@
   <meta name="description" content="FRAME · 相机公司模拟器 — 从工业设计到全球市场的现代影像公司经营沙盒。">
   <title>FRAME · 相机公司模拟器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d0f0d'/%3E%3Ccircle cx='32' cy='32' r='18' fill='none' stroke='%23d8a65a' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='9' fill='none' stroke='%23f3efe4' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='3' fill='%23d8a65a'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/style.css?v=20261102">
-  <link rel="stylesheet" href="css/art.css?v=20261102">
+  <link rel="stylesheet" href="css/style.css?v=20261109">
+  <link rel="stylesheet" href="css/art.css?v=20261109">
+<style id="diff-css">
+.company-card-diff{display:flex;align-items:center;gap:7px;margin:6px 0 2px}
+.company-card-diff .diff-stars{font-size:11px;letter-spacing:.12em;line-height:1}
+.company-card-diff .diff-label{font-size:9.5px;letter-spacing:.14em;color:#8a7f6a}
+.company-card-diff .diff-stars[data-diff="1"]{color:#7fb069}
+.company-card-diff .diff-stars[data-diff="2"]{color:#b6b45a}
+.company-card-diff .diff-stars[data-diff="3"]{color:#d8a65a}
+.company-card-diff .diff-stars[data-diff="4"]{color:#d07a4a}
+.company-card-diff .diff-stars[data-diff="5"]{color:#c85a4a}
+</style>
+<style id="team-css">
+.tm-panel{margin-top:16px}
+.tm-panel h3{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:13px;letter-spacing:.06em}
+.tm-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.tm-slot{border:1px solid #332c21;background:#100e0b;padding:10px}
+.tm-slot-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.12em;color:#b9ae98;margin-bottom:8px}
+.tm-slot-tag{font-size:9px;color:#8a7f6a;border:1px solid #3a3226;padding:1px 6px}
+.tm-adv-row{display:flex;gap:9px;align-items:flex-start}
+.tm-adv-face{width:54px;height:54px;object-fit:cover;border:1px solid #4a4034;flex:none}
+.tm-adv-info b{font-size:12px;color:#efe6d2;display:block}
+.tm-adv-stars{font-size:9px;color:#d8a65a;letter-spacing:.1em}
+.tm-adv-info p{margin:3px 0 0;font-size:9.5px;color:#8a7f6a;line-height:1.45}
+.tm-adv-eff{color:#a8945f!important}
+.tm-adv-salary{display:block;margin-top:4px;font-size:9px;color:#7d7466}
+.tm-adv-empty{font-size:10px;color:#6a6152;padding:14px 0;text-align:center;border:1px dashed #332c21}
+.tm-adv-actions{margin-top:8px}
+.tm-cands{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.tm-cand{display:flex;gap:8px;align-items:center;border-top:1px solid #241f18;padding-top:8px}
+.tm-cand-face{width:34px;height:34px;object-fit:cover;border:1px solid #3a3226;flex:none}
+.tm-cand-info{flex:1;min-width:0}
+.tm-cand-info b{font-size:10.5px;color:#d8cfbb;display:block}
+.tm-cand-info span{font-size:8.5px;color:#d8a65a}
+.tm-cand-info p{margin:2px 0 0;font-size:9px;color:#7d7466;line-height:1.4;overflow:hidden}
+.tm-cand-meta{font-size:8.5px;color:#6a6152}
+.tm-staff-head{display:flex;gap:18px;font-size:10px;color:#8a7f6a;margin-bottom:10px}
+.tm-depts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tm-dept{border:1px solid #2a241c;background:#0e0c0a;padding:9px}
+.tm-dept-top{display:flex;justify-content:space-between;font-size:10px;color:#b9ae98}
+.tm-bar{height:4px;background:#1c1813;margin:6px 0;overflow:hidden}
+.tm-bar i{display:block;height:100%;background:linear-gradient(90deg,#8a6b34,#d8a65a)}
+.tm-dept-foot{display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#7d7466}
+.tm-dept-btns{display:flex;gap:4px}
+.btn-xs{font-size:9px;padding:2px 6px;line-height:1.4}
+</style>
+<style id="staff-css">
+.st-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:14px 18px;margin-bottom:14px}
+.st-kpi{display:flex;flex-direction:column;gap:4px}
+.st-kpi span{font-size:10px;letter-spacing:.12em;color:#8a7f6a}
+.st-kpi b{font-size:18px;color:#efe6d2;font-weight:600}
+.st-list{display:flex;flex-direction:column;gap:2px}
+.st-row{padding:12px 0;border-bottom:1px solid #211c16}
+.st-row-main{display:grid;grid-template-columns:90px 110px 1fr 46px 90px;align-items:center;gap:12px}
+.st-name{font-size:12px;color:#d8cfbb}
+.st-num{font-size:11px;color:#8a7f6a}
+.st-num b{color:#efe6d2;font-size:13px}
+.st-bar{height:5px;background:#1a1611;overflow:hidden}
+.st-bar i{display:block;height:100%}
+.st-morale{font-size:12px;text-align:right}
+.st-pay{font-size:11px;color:#8a7f6a;text-align:right}
+.st-row-meta{display:flex;justify-content:space-between;align-items:center;margin-top:7px;font-size:9.5px;color:#6f6759}
+.st-btns{display:flex;gap:6px}
+</style>
+<style id="liquid-glass">
+/* ===== iOS 26 Liquid Glass ===== */
+:root{
+  --glass-bg:rgba(28,26,22,.44);
+  --glass-bg-strong:rgba(32,30,25,.62);
+  --glass-border:rgba(255,255,255,.14);
+  --glass-border-soft:rgba(255,255,255,.08);
+  --glass-hi:rgba(255,255,255,.22);
+  --glass-shadow:0 18px 46px rgba(0,0,0,.55);
+  --glass-r:18px;
+}
+
+/* 玻璃底：半透明 + 背景模糊 + 内高光 + 外阴影 */
+.panel,
+.company-card,
+.settings-card,
+.tm-slot,
+.tm-dept,
+.card,
+.cmd-panel{
+  background:linear-gradient(160deg, rgba(255,255,255,.055), rgba(255,255,255,.012) 42%, rgba(0,0,0,.10)) , var(--glass-bg) !important;
+  -webkit-backdrop-filter:blur(22px) saturate(170%);
+  backdrop-filter:blur(22px) saturate(170%);
+  border:1px solid var(--glass-border) !important;
+  border-radius:var(--glass-r) !important;
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    inset 0 -1px 0 rgba(0,0,0,.35),
+    var(--glass-shadow) !important;
+  position:relative;
+}
+
+/* 顶面一道高光，模拟玻璃棱边 */
+.panel::before,
+.company-card::before,
+.tm-slot::before,
+.tm-dept::before{
+  content:"";
+  position:absolute;
+  left:10px; right:10px; top:0; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.42), transparent);
+  pointer-events:none;
+  border-radius:inherit;
+}
+
+/* 按钮：胶囊玻璃 */
+.btn{
+  border-radius:999px !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.03)) !important;
+  border:1px solid var(--glass-border) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 6px 16px rgba(0,0,0,.35) !important;
+  -webkit-backdrop-filter:blur(14px) saturate(160%);
+  backdrop-filter:blur(14px) saturate(160%);
+  transition:transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s ease, background .18s ease;
+}
+.btn:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 10px 22px rgba(0,0,0,.45) !important}
+.btn:active{transform:translateY(0) scale(.985)}
+
+/* 主按钮：金色玻璃 */
+.btn-primary{
+  background:linear-gradient(180deg, rgba(216,166,90,.32), rgba(216,166,90,.14)) !important;
+  border-color:rgba(216,166,90,.42) !important;
+  color:#ffe9bd !important;
+}
+
+/* 顶栏与资源条 */
+.topbar,.cmd-top,.resbar,.cmd-res{
+  background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.16)) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  backdrop-filter:blur(18px) saturate(160%);
+  border-bottom:1px solid var(--glass-border-soft) !important;
+}
+
+/* 输入 / 滑块 */
+input[type=range]{filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+
+/* 弹窗 */
+.modal,.modal-card,.sheet{
+  background:linear-gradient(165deg, rgba(255,255,255,.08), rgba(255,255,255,.02) 40%, rgba(0,0,0,.14)) , var(--glass-bg-strong) !important;
+  -webkit-backdrop-filter:blur(30px) saturate(180%);
+  backdrop-filter:blur(30px) saturate(180%);
+  border:1px solid var(--glass-border) !important;
+  border-radius:22px !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.26), 0 30px 80px rgba(0,0,0,.65) !important;
+}
+
+/* 决策节点也带一点玻璃 */
+.fx-viewport rect{ rx:6; }
+</style>
+
 </head>
 <body>
   <div id="boot-root"></div>
   <div id="app" class="app is-hidden" aria-hidden="true">
-    <aside id="sidebar" class="sidebar" aria-label="主导航"></aside>
-    <div class="app-main">
+    <div class="app-main app-main--full">
       <header id="topbar" class="topbar"></header>
       <main id="view" class="view" tabindex="-1"></main>
     </div>
-    <div id="sidebar-scrim" class="sidebar-scrim" data-action="close-sidebar"></div>
   </div>
   <div id="modal-root"></div>
   <div id="toast-root" class="toast-root" aria-live="polite"></div>
@@ -28,14 +178,40 @@
       《相机公司模拟器》需要启用 JavaScript 才能运行。
     </div>
   </noscript>
-  <script src="js/data.js?v=20261102"></script>
-  <script src="js/engine.js?v=20261102"></script>
-  <script src="js/artdata.js?v=20261102"></script>
-  <script src="js/artlib.js?v=20261102"></script>
-  <script src="js/art3d.js?v=20261102"></script>
-  <script src="js/photodata.js?v=20261102"></script>
-  <script src="js/photolib.js?v=20261102"></script>
-  <script src="js/preview.js?v=20261102"></script>
-  <script src="js/ui.js?v=20261102"></script>
+  <script src="js/data.js?v=20261109"></script>
+  <script src="js/chipdata.js?v=20261109"></script>
+  <script src="js/engine.js?v=20261109"></script>
+  <script src="js/focusdata.js?v=20261109"></script>
+  <script src="js/spirits.js?v=20261109"></script>
+  <script src="js/advisor.js?v=20260901"></script>
+  <script src="js/staff.js?v=20260901"></script>
+  <script src="js/focus.js?v=20261109"></script>
+  <script src="js/artdata.js?v=20261109"></script>
+  <script src="js/artlib.js?v=20261109"></script>
+  <script src="js/art3d.js?v=20261109"></script>
+  <script src="js/photodata.js?v=20261109"></script>
+  <script src="js/photolib.js?v=20261109"></script>
+  <script src="js/preview.js?v=20261109"></script>
+  <script src="js/events.js?v=20260901"></script>
+  <script src="js/news.js?v=20260901"></script>
+  <script src="js/diplomacy.js?v=20261109"></script>
+  <script src="js/vecicons.js?v=20261109"></script>
+  <script src="js/vecicons2.js?v=20261109"></script>
+  <script src="js/globe3d.js?v=20261109"></script>
+  <script src="js/commandui.js?v=20261109"></script>
+  <script src="js/focusui.js?v=20261109"></script>
+  <script src="js/strategyui.js?v=20261109"></script>
+  <script src="js/bootfx.js?v=20260901"></script>
+  <script src="js/ui.js?v=20261109"></script>
+<style id="no-sidebar-css">
+/* 只隐藏左侧导航栏，其余布局完全照旧 */
+.sidebar,.sidebar-scrim{display:none!important}
+/* .app 原本是 grid-template-columns: var(--sidebar-w) minmax(0,1fr)
+   侧栏移除后只剩一列，必须改成单列，否则内容被压进窄列 */
+.app{grid-template-columns:minmax(0,1fr)!important}
+.app-main{min-width:0}
+/* 指挥中心：顶栏 + 页头以下的可用高度 */
+.cmd{height:calc(100vh - 150px)!important;min-height:520px!important}
+</style>
 </body>
 </html>

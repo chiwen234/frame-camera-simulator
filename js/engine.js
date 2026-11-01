@@ -27,14 +27,8 @@
     nikon: { compact: 'Coolpix P', mirrorless: 'Z', fullframe: 'Z6', highres: 'Z8', sports: 'Z9', vlog: 'Z30', cinema: 'ZR', medium: 'Z MF', action: 'KeyMission', retro: 'Zf' },
     fujifilm: { compact: 'XQ', mirrorless: 'X-T', fullframe: 'X-Pro', highres: 'X-H', sports: 'X-HS', vlog: 'X-M', cinema: 'X-H Cine', medium: 'GFX', action: 'XP', retro: 'X100' },
     panasonic: { compact: 'Lumix TZ', mirrorless: 'Lumix G', fullframe: 'Lumix S', highres: 'Lumix S1R', sports: 'Lumix S1H', vlog: 'Lumix S9', cinema: 'Lumix GH', medium: 'Lumix MF', action: 'Lumix FT', retro: 'Lumix Retro' },
-    sigma: { compact: 'fp C', mirrorless: 'fp Air', fullframe: 'fp', highres: 'fp L', sports: 'fp S', vlog: 'fp V', cinema: 'fp Cine', medium: 'fp MF', action: 'fp Go', retro: 'fp Classic' },
-    tamron: { compact: 'TAM C', mirrorless: 'TAM M', fullframe: 'TAM F', highres: 'TAM R', sports: 'TAM S', vlog: 'TAM V', cinema: 'TAM Cine', medium: 'TAM G', action: 'TAM Go', retro: 'TAM H' },
-    red: { cinema: 'V-RAPTOR', highres: 'RAPTOR', sports: 'RAPTOR S', medium: 'RAPTOR XL', fullframe: 'KOMODO', compact: 'KOMODO C' },
-    blackmagic: { cinema: 'URSA Cine', highres: 'URSA', fullframe: 'PYXIS', compact: 'Pocket', vlog: 'Pocket V', action: 'Pocket Go', sports: 'URSA S' },
-    arri: { cinema: 'ALEXA', highres: 'ALEXA 65', fullframe: 'ALEXA LF', sports: 'ALEXA S', medium: 'ALEXA 65' },
-    leica: { compact: 'Q', mirrorless: 'CL', fullframe: 'SL', highres: 'SL R', sports: 'SL S', vlog: 'V-Lux', cinema: 'SL Cine', medium: 'S', retro: 'M' },
-    om: { compact: 'Tough', mirrorless: 'OM', fullframe: 'OM-X', highres: 'OM-R', sports: 'OM-1', vlog: 'OM-V', cinema: 'OM-Cine', medium: 'OM-G', action: 'Tough', retro: 'OM-3' },
     dji: { compact: 'Osmo Nano', mirrorless: 'DJI M', fullframe: 'DJI F', highres: 'DJI R', sports: 'Osmo Action', vlog: 'Osmo Pocket', cinema: 'Ronin', medium: 'DJI G', action: 'Osmo Action', retro: 'Osmo Retro' },
+    insta360: { compact: 'Luna', mirrorless: 'Insta M', fullframe: 'Insta F', highres: 'Luna Pro', sports: 'Ace Pro', vlog: 'GO', cinema: 'Titan', medium: 'Insta G', action: 'X', retro: 'GO Classic' },
     gopro: { action: 'HERO', vlog: 'HERO V', compact: 'GoPro C', sports: 'HERO S', cinema: 'MAX Cine' }
   };
 
@@ -175,13 +169,140 @@
     return D.CHIP_LAB_LEVELS[chipLabLevel(company)] || D.CHIP_LAB_LEVELS[0];
   }
   function chipPower(company) {
-    return Math.max(10, researchPower(company) * 0.55 * (1 + chipLabLevel(company) * 0.08));
+    // FOCUS MOD: 国策可以提升芯片研发力
+    return Math.max(10, researchPower(company) * 0.55 * (1 + chipLabLevel(company) * 0.08) * (company._focusChip || 1));
   }
   function chipSlots(company) {
     return chipLabDef(company).slots || 1;
   }
   function chipLabUpkeep(company) {
     return chipLabDef(company).upkeep || 0;
+  }
+
+  /* =========================================================
+  AF SPEC — every AF chip (real or in-house) exposes six
+  measurable numbers. These drive focus performance, unit cost
+  and the published spec sheet.
+  ========================================================= */
+  const AF_SPEC_FIELDS = [
+    { key: 'covName', label: '对焦覆盖', unit: '' },
+    { key: 'ptPoints', label: '相位对焦点', unit: ' 点', digits: 0 },
+    { key: 'lockMs', label: '单次锁定', unit: ' ms', digits: 0 },
+    { key: 'evLight', label: '低光对焦', unit: ' EV', digits: 1 },
+    { key: 'trackPct', label: '连续追焦', unit: '%', digits: 0 },
+    { key: 'eyePct', label: '人眼识别', unit: '%', digits: 0 }
+  ];
+  const AF_STAGE_PASS = { arch: 0.86, layout: 0.83, stream: 0.78, trigger: 0.80, qual: 0.82 };
+
+  function afCoverageMult(id) {
+    const c = D.AF_COVERAGE[id] || D.AF_COVERAGE.wide;
+    return c.mult;
+  }
+  function afCoverageShort(id) {
+    const c = D.AF_COVERAGE[id] || D.AF_COVERAGE.wide;
+    return (c.name || '宽区域').replace('区域', id === 'full' || id === 'near' ? '' : '区域');
+  }
+  function focusLineTotal(spec) {
+    if (!spec) return 0;
+    return Math.max(1, Math.round(spec.covPct / 100 * (spec.ptPoints || 0)));
+  }
+  function lockTimeMs(spec, contrast, optics) {
+    if (!spec) return 400;
+    return clamp(80 + Number(contrast || 0) * 105 + Number(optics || 0) * 40 + Math.max(0, 8 + Number(spec.evLight || 0)) * 18, 62, 520);
+  }
+  function trackRating(spec) {
+    if (!spec) return 1.2;
+    return clamp(0.3 + Math.max(0, -Number(spec.evLight || 0)) * 0.12 + (Number(spec.contrast) || 1) * 0.7
+      + (Number(spec.ptPoints || 0) / 900) * 1.1 + (Number(spec.coverMult || 0.3) * 1.3), 0.4, 3.2);
+  }
+
+  function computeAfSpec(cfg) {
+    let o = Object.assign({}, cfg || {});
+    (o._mods || []).forEach(m => { o = Object.assign(o, m); });
+    const arch = D.AF_ARCH_TEMPLATE[o.arch] || D.AF_ARCH_TEMPLATE.fullpixel;
+    const TI = o.tierIndex == null ? 1 : Number(o.tierIndex);
+    const BI = o.budgetIndex == null ? 1 : Number(o.budgetIndex);
+    const techAf = Number(o.techAf) || 0;
+    const labLevel = Number(o.labLevel) || 0;
+    const coverMult = afCoverageMult(o.coverage);
+    const tierMul = [0.8, 1, 1.24][clamp(TI, 0, 2)];
+    const budgetMul = [0.9, 1, 1.14][clamp(BI, 0, 2)];
+    const ptPoints = clamp(Math.round((arch.ptPoints * tierMul + techAf * 9 + labLevel * 14 + BI * 8) * (1 + (Number(o._dPt) || 0)) / 5) * 5, 12, 1100);
+    const covBase = clamp(arch.ptCoverage + (coverMult - 0.46) * 0.5 + (TI - 1) * 0.03, 0.16, 0.62);
+    const covPct = Math.round(covBase * 100);
+    const contrast = Number(o.contrast) || 1.0;
+    const evLight = clamp(arch.lowLightBase + (TI - 1) * 0.35 + (BI - 1) * 0.25 + labLevel * 0.4 + (Number(o._dEv) || 0), -9, -1);
+    const trackPct = clamp(Math.round(28 + Math.max(0, -evLight) * 10.5 + (covPct - 20) * 0.42 + (3 - contrast) * 9 + (TI - 1) * 5 + (Number(o._dTrack) || 0) * 30), 12, 99);
+    const eyePct = clamp(Math.round(trackPct * 0.98 + 5 + (o.arch === 'ai' ? 3 : 0)), 10, 99);
+    const lockMs = Math.round(lockTimeMs({ evLight }, contrast, 2 - contrast * 0.5) / 5) * 5;
+    const ampCost = Math.round(arch.ampCost * (0.86 + TI * 0.12 + BI * 0.1));
+    const ampW = Math.round(arch.ampW * (0.9 + TI * 0.1 + BI * 0.08));
+    return {
+      ptPoints, covPct, contrast: Number(contrast.toFixed(2)), evLight: Number(evLight.toFixed(1)),
+      trackPct, eyePct, lockMs, ampCost, ampW,
+      covName: afCoverageShort(o.coverage), coverMult, label: (D.AF_ARCHITECTURES[o.arch] || D.AF_ARCHITECTURES.ai).name,
+      arch: o.arch, coverage: o.coverage, tier: o.tier, budget: o.budget
+    };
+  }
+
+  function brandAfChip(brandId) {
+    const def = D.AF_CHIPS[brandId];
+    if (!def) return null;
+    const arch = D.AF_ARCH_TEMPLATE[def.arch] || D.AF_ARCH_TEMPLATE.fullpixel;
+    if (!def._spec) {
+      def._spec = {
+        ptPoints: def.pt, covPct: Math.round((D.AF_COVERAGE[def.coverage] || D.AF_COVERAGE.wide).mult * 100),
+        contrast: def.contrast, evLight: def.evLight, ev: def.ev, trackPct: Math.round(def.track * 30.8), eyePct: Math.round(def.eye * 100),
+        lockMs: Math.round((80 + def.contrast * 105 + (2 - def.contrast * 0.5) * 40 + Math.max(0, 8 + def.evLight) * 18) / 5) * 5,
+        ampCost: Math.round(arch.ampCost * 0.9), ampW: arch.ampW, coverMult: (D.AF_COVERAGE[def.coverage] || D.AF_COVERAGE.wide).mult,
+        covName: afCoverageShort(def.coverage), arch: def.arch, coverage: def.coverage
+      };
+    }
+    return def._spec;
+  }
+
+  function effectiveAfChipSpec(company) {
+    if (!company || !company.afKind) return null;
+    if (company.afKind === 'inhouse') {
+      const chip = findAfChip(company, company.afChipId) || bestAfChip(company);
+      return chip ? chip.spec || null : null;
+    }
+    const brand = brandAfChip(company.id);
+    return brand || null;
+  }
+
+  function createAfChipsForCompany(def) {
+    if (!def || !def.afChipId || !D.AF_CHIPS[def.afChipId]) return { afChips: [], afKind: 'procure', afChipId: null };
+    const chipDef = D.AF_CHIPS[def.afChipId];
+    const spec = brandAfChip(def.afChipId);
+    const chip = {
+      id: `${def.id}-af-brand-1`, kind: 'af', name: chipDef.name, shortName: chipDef.en,
+      arch: chipDef.arch, tier: 'brand', coverage: chipDef.coverage, subjects: (chipDef.subjects || []).slice(),
+      ampCost: spec.ampCost, ampW: spec.ampW, year: chipDef.year, desc: chipDef.desc,
+      generation: 1, builtMonth: -Math.max(0, 2024 - (chipDef.year || 2020)) * 12, isBrand: true, spec: deepClone(spec)
+    };
+    return { afChips: [chip], afKind: 'brand', afChipId: chip.id };
+  }
+
+  function focusChipRef(company) {
+    if (!company) return null;
+    if (company.afKind === 'inhouse') return findAfChip(company, company.afChipId) || bestAfChip(company);
+    if (company.afKind === 'brand') return findAfChip(company, company.afChipId) || latestChip(company.afChips);
+    return null;
+  }
+
+  function sensorRef(company) {
+    if (!company) return null;
+    const def = D.CMOS_SENSORS[company.id] || null;
+    const offer = (D.SENSOR_SUPPLIERS[company.sensorSupplier] || {}).name || '外购传感器';
+    const ct = (company.cmosChips || [])[0];
+    if (company.cmosKind === 'inhouse' && ct) {
+      return { id: ct.id, name: ct.name || `自研 ${ct.mp}MP CMOS`, shortName: ct.shortName, mp: ct.mp, type: ct.type, source: 'inhouse', costFactor: ct.costFactor, quality: ct.quality };
+    }
+    if (company.cmosKind === 'brand' && def) {
+      return { id: `${company.id}-cmos`, name: `${def.code} ${def.mp}MP`, shortName: def.code, mp: def.mp, type: def.type, source: 'brand', desc: def.desc, costFactor: 1 };
+    }
+    return { id: null, name: offer || '外购传感器', shortName: offer || '外购传感器', mp: null, type: null, source: 'procure', costFactor: 1 };
   }
   function latestChip(chips) {
     return (chips || []).slice().sort((a, b) =>
@@ -203,6 +324,47 @@
   }
   function bestAfChip(company) {
     return latestChip(company && company.afChips);
+  }
+  // ---------- 芯片型号（每家自有，无公用芯片） ----------
+  function chipLib() { return window.FRAME_CHIPS || null; }
+  function processorsFor(company) {
+    const L = chipLib();
+    if (!L || !company) return [];
+    return L.processorsFor(company.id);
+  }
+  function defaultProcessorFor(company) {
+    const L = chipLib();
+    if (!L || !company) return null;
+    return L.defaultProcessor(company.id);
+  }
+  function processorFor(company, id) {
+    const L = chipLib();
+    if (!L || !company) return null;
+    return id ? L.processorById(company.id, id) : L.defaultProcessor(company.id);
+  }
+  function cmosModelsFor(company) {
+    const L = chipLib();
+    if (!L || !company) return [];
+    return L.cmosModelsFor(company.id);
+  }
+  function cmosModelFor(company, id) {
+    const L = chipLib();
+    if (!L || !company) return null;
+    return id ? L.cmosModelById(company.id, id) : (L.cmosModelsFor(company.id)[0] || null);
+  }
+  // 处理器能力 → 对焦评分（0~100）与锁定时间
+  function processorAfRating(proc, aiChip) {
+    if (!proc) return { af: 50, ai: 40, lockMs: 260, detect: 60, subjects: [] };
+    const afBoost = aiChip ? aiChip.afBoost || 0 : 0;
+    const aiBoost = aiChip ? aiChip.aiBoost || 0 : 0;
+    const af = clamp((proc.afScore || 50) + afBoost * 0.6, 5, 100);
+    const ai = clamp((proc.aiScore || 40) + aiBoost, 5, 100);
+    const lockMs = Math.max(70, Math.round((proc.lockMs || 240) * (1 - aiBoost / 260))); 
+    return {
+      af: Math.round(af), ai: Math.round(ai), lockMs,
+      detect: clamp((proc.detectRange || 70) + aiBoost * 0.5, 10, 100),
+      subjects: (proc.subjects || []).slice()
+    };
   }
   function resolveDesignChips(design, company) {
     const chip = (design && design.chip) || {};
@@ -480,11 +642,22 @@
     game.stats.chipsDeveloped = game.stats.chipsDeveloped || 0;
     return game;
   }
+
+  function advisorMods(game) {
+
+    if (!window.FRAME_ADVISOR) return null;
+
+    return window.FRAME_ADVISOR.mods(game);
+
+  }
+
   function researchPower(company) {
-    return 20 + Math.sqrt(Math.max(0, company.staff.engineers || 0)) * 22 * (1 + Math.min(0.3, (company.tech.software || 1) * 0.015));
+    // FOCUS MOD: talent 修正由 applyFocusRuntime 注入 company._focusTalent
+    return (20 + Math.sqrt(Math.max(0, company.staff.engineers || 0)) * 22 * (1 + Math.min(0.3, (company.tech.software || 1) * 0.015))) * (company._focusTalent || 1);
   }
   function monthlySalaryBill(company) {
-    return Object.keys(company.staff).reduce((total, key) => total + (company.staff[key] || 0) * (D.STAFF_ROLES[key] ? D.STAFF_ROLES[key].salary : 0), 0);
+
+    return Object.keys(company.staff).reduce((total, key) => total + (company.staff[key] || 0) * (D.STAFF_ROLES[key] ? D.STAFF_ROLES[key].salary : 0), 0) * (company._focusSalary || 1);
   }
   function companyStaffCount(company) {
     return Object.keys(company.staff).reduce((total, key) => total + (company.staff[key] || 0), 0);
@@ -596,6 +769,8 @@
   }
 
   function makeCameraDraft(categoryId, company, overrides) {
+    // FOCUS MOD: 新建草稿前刷新国策修正，保证成本与报价使用最新路线效果
+    refreshFocusRuntime(company);
     const cat = getCategory(categoryId);
     const bodyDef = D.BODY_TYPES[cat.body] || D.BODY_TYPES.mirrorless;
     const bd = bodyDef.defaults;
@@ -840,6 +1015,26 @@
     if (overrides && overrides.seed) {
       Object.assign(draft, overrides.seed);
     }
+    // CHIP MODEL: 新草稿默认装载本厂最新的处理器与一颗可用 CMOS 型号
+    try {
+      const L = chipLib();
+      if (L && company && company.id) {
+        const procs = L.processorsFor(company.id) || [];
+        const usable = procs.filter(pp => (company.tech && company.tech.af || 1) >= (pp.techAf || 1) && !pp.flagshipOnly);
+        const pick = usable[usable.length - 1] || procs[0] || null;
+        if (pick) { draft.chip = draft.chip || {}; draft.chip.processorId = pick.id; draft.chip.afSource = 'inhouse'; }
+        const models = (L.cmosModelsFor(company.id) || []).filter(mm => (company.tech && company.tech.sensor || 1) >= (mm.tech || 1));
+        const md = models.find(mm => mm.format === draft.sensor.format) || models[0] || null;
+        if (md) {
+          draft.sensor.modelId = md.id;
+          draft.sensor.format = md.format;
+          draft.sensor.mp = Math.min(draft.sensor.mp || md.mp, md.mp);
+          draft.sensor.type = md.readout === 'stacked' ? 'stacked' : 'bsi';
+          draft.sensor.dynamicRange = md.dr;
+          draft.sensor.colorDepth = md.colorDepth;
+        }
+      }
+    } catch (e) { /* 芯片库不可用时保持手填 */ }
     if (!D.MOUNTS[draft.mount.type]) draft.mount.type = 'E';
     // Default to the company's chip strategy where a matching in-house chip exists.
     if (!(overrides && overrides.seed)) {
@@ -1185,15 +1380,20 @@
 
     const traits = { looks, retro, pro, portability, handling, business, trend, cinema, consumer, premium };
 
+    // CHIP MODEL: 先解析本厂自有的影像处理器与 CMOS 型号，画质/对焦/成本都用它
+    const proc = processorFor(company, draft.chip && draft.chip.processorId);
+    const aiChipData = (proc && proc.aiChipId && chipLib()) ? chipLib().aiChipById(proc.aiChipId) : null;
+    const afRating = processorAfRating(proc, aiChipData);
+    const cmosModel = cmosModelFor(company, draft.sensor && draft.sensor.modelId);
     // ---------------- image pipeline ----------------
     const baseFormatScore = { one: 34, m43: 43, apsc: 52, ff: 64, mf: 76, lf: 84 }[format.id] || 60;
     let imageScore = baseFormatScore
       + Math.log2(Math.max(1, draft.sensor.mp / 12)) * 3.0
       + (tech.sensor || 1) * 1.4
       + sensorType.quality * 1.0
-      + (draft.sensor.dynamicRange - 11) * 1.5
+      + ((cmosModel ? cmosModel.dr : draft.sensor.dynamicRange) - 11) * 1.5
       + (draft.sensor.baseIso <= 100 ? 2.2 : 0)
-      + draft.sensor.colorDepth * 0.22
+      + (cmosModel ? cmosModel.colorDepth : draft.sensor.colorDepth) * 0.22
       + (tech.color || 1) * 0.6;
     const maxMp = maxMPFor(format.id, company);
     if (draft.sensor.mp > maxMp) imageScore -= (draft.sensor.mp - maxMp) * 0.35;
@@ -1205,9 +1405,21 @@
     if ((tech.af || 1) < afDef.tech) {
       addWarning(`${afDef.name}需要自动对焦技术 Lv.${afDef.tech}。`, 'bad', true);
     }
-    const afBonus = afDef.bonus + (draft.performance.afTracking || 3) * 3.6 + (afChip ? afChip.bonus : 0);
-    let focusScore = 28 + (tech.af || 1) * 5.2 + afBonus + (tech.software || 1) * 1.5 + (draft.sensor.type === 'stacked' ? 3 : 0);
+    // FOCUS MOD: 国策中的对焦芯片可以让对焦算法更快（dsp < 1 更快）
+    const focusDsp = company._focus ? (company._focus.dsp || 1) : 1;
+    // CHIP MODEL: 对焦能力来自本厂自有的影像主处理器 +（可选）独立 AI 芯片
+    const stackBonus = cmosModel ? (cmosModel.readout === 'stacked' ? 6 : cmosModel.readout === 'partial' ? 3 : 0) : (draft.sensor.type === 'stacked' ? 3 : 0);
+    const globalBonus = cmosModel && cmosModel.shutter === 'global' ? 4 : 0;
+    const afTracking = draft.performance.afTracking || 3;
+    let focusScore = 18
+      + afRating.af * 0.46
+      + afRating.ai * 0.17
+      + afTracking * 1.8
+      + (tech.software || 1) * 1.2
+      + stackBonus + globalBonus;
+    focusScore += (1 - Math.min(1, focusDsp)) * 7;
     if (kitLens && kitLens.motor === 'mf') focusScore -= 35;
+    if (proc && (tech.af || 1) < (proc.techAf || 1)) focusScore -= 6;
     focusScore = clamp(focusScore, 8, 100);
 
     const stabDef = D.STABILIZATIONS[draft.performance.stabilization] || D.STABILIZATIONS.none;
@@ -1289,9 +1501,17 @@
     const buildScore = clamp(30 + material.premium * 22 + frame.strength * 12 + (draft.body.weatherSealed ? 11 : 0) + topPlate.premium * 6 + finish.premium * 5, 8, 100);
 
     // ---------------- cost ----------------
-    const sensorCost = Math.round(format.baseCost * (0.68 + draft.sensor.mp / format.refMP * 0.82) * sensorType.cost * (cmosChip ? cmosChip.costFactor : supplier.cost));
+    // FOCUS MOD: 国策可以压低传感器 / 对焦模组 / 整机成本
+    const focusCostSensor = company._focus ? (company._focus.costSensor || 1) : 1;
+    const focusCostAf = company._focus ? (company._focus.costAf || 1) : 1;
+    const focusCostTotal = company._focus ? (company._focus.costTotal || 1) : 1;
+    // CHIP MODEL: 型号自带价格，不再按像素线性推算
+    const baseSensorCost = cmosModel
+      ? Math.round(cmosModel.cost * (cmosChip ? 0.82 : 1) * focusCostSensor)
+      : Math.round(format.baseCost * (0.68 + draft.sensor.mp / format.refMP * 0.82) * sensorType.cost * (cmosChip ? cmosChip.costFactor : supplier.cost) * focusCostSensor);
+    const sensorCost = baseSensorCost;
     const processorCost = Math.round(240 + resDef.level * 300 + codecDefs.length * 105 + (draft.performance.burst > 20 ? 120 : 0) + (tech.software || 1) * 48);
-    const afCost = Math.max(0, Math.round(afDef.cost + (afChip ? afChip.costDelta : 0)));
+    const afCost = Math.max(0, Math.round((afDef.cost + (afChip ? afChip.costDelta : 0)) * focusCostAf));
     const screenCost = screenType.id === 'none' ? 0 : Math.round(120 + draft.screen.size * draft.screen.size * 36 + draft.screen.nits * 0.16 + (D.SCREEN_RES[draft.screen.res] || D.SCREEN_RES['1080p']).cost + (D.GAMUTS[draft.screen.gamut] || D.GAMUTS.srgb).cost + (draft.screen.touch ? 70 : 0) + (draft.screen.refresh > 60 ? 80 : 0));
     const viewfinderCost = Math.round(vf.cost + (draft.viewfinder.res === '5.76m' ? 180 : 0));
     const topPlateCost = topPlate.cost * 190;
@@ -1312,7 +1532,7 @@
     const subtotal = sensorCost + processorCost + afCost + screenCost + viewfinderCost + bodyCost + mountCost + controlsCost + stabCost + portsCost + wirelessCost + batteryCost + detailsCost + accessoriesCost + assemblyCost;
     const manufacturingAdjustment = Math.round((subtotal - sensorCost) * (manufacturer.costFactor - 1));
     const qcPerUnit = (D.QC_TIERS[draft.qc] || D.QC_TIERS.standard).perUnit;
-    const unitCost = Math.max(200, sensorCost + processorCost + afCost + screenCost + viewfinderCost + bodyCost + mountCost + controlsCost + stabCost + portsCost + wirelessCost + batteryCost + detailsCost + accessoriesCost + assemblyCost + manufacturingAdjustment + qcPerUnit);
+    const unitCost = Math.max(200, Math.round((sensorCost + processorCost + afCost + screenCost + viewfinderCost + bodyCost + mountCost + controlsCost + stabCost + portsCost + wirelessCost + batteryCost + detailsCost + accessoriesCost + assemblyCost + manufacturingAdjustment + qcPerUnit) * focusCostTotal));
     const costBreakdown = {
       sensor: sensorCost, processor: processorCost, autofocus: afCost, screen: screenCost, viewfinder: viewfinderCost,
       body: bodyCost, mount: mountCost, controls: controlsCost, stabilisation: stabCost,
@@ -1950,13 +2170,72 @@
     return result;
   }
 
+  // ---------- focus (国策) bridge ----------
+  // The focus engine lives in js/focus.js; the engine only reads its modifiers.
+  // Apply focus-derived runtime multipliers onto the company so every existing
+  // formula (researchPower / monthlySalaryBill / chipPower) picks them up.
+  function applyFocusRuntime(game) {
+    const c = game && game.company;
+    if (!c) return;
+    const F = focusBridge();
+    if (!F || !game.focus) { c._focusTalent = 1; c._focusSalary = 1; c._focusChip = 1; c._focus = { costSensor: 1, costAf: 1, costTotal: 1, costBody: 1, costOptics: 1, dsp: 1 }; return; }
+    let m = null;
+    try { m = F.focusMods(game); } catch (e) { m = null; }
+    c._focusTalent = (m && m.talent) || 1;
+    c._focusSalary = (m && m.salary) || 1;
+    c._focusChip = (m && m.chip) || 1;
+    // cost / dsp are read by evaluateCamera(company) which has no game reference
+    c._focus = {
+      costSensor: (m && m.cost && m.cost.sensor) || 1,
+      costAf: (m && m.cost && m.cost.af) || 1,
+      costTotal: (m && m.cost && m.cost.total) || 1,
+      costBody: (m && m.cost && m.cost.body) || 1,
+      costOptics: (m && m.cost && m.cost.optics) || 1,
+      dsp: (m && m.dsp) || 1
+    };
+  }
+  function focusBridge() { return window.FocusEngine || null; }
+  // Company objects are also evaluated outside advanceMonth (design studio, launch review),
+  // so bind the owning game once and refresh the cached focus multipliers on demand.
+  function refreshFocusRuntime(company) {
+    if (!company) return;
+    if (!company._gameRef) {
+      const F = focusBridge();
+      if (!F || typeof F.currentGame !== 'function') return;
+      const g = F.currentGame();
+      if (g && g.company === company) {
+        try { Object.defineProperty(company, '_gameRef', { value: g, enumerable: false, writable: true, configurable: true }); }
+        catch (err) { company._gameRef = g; }
+      }
+    }
+    const g = company._gameRef;
+    if (!g) return;
+    try { focusBridge().recalcFocusModifiers(g); applyFocusRuntime(g); } catch (e) { /* ignore */ }
+  }
+  function focusMult(game, kind, key) {
+    const F = focusBridge();
+    if (!F || !game || !game.focus) return 1;
+    try { return F.modMult(game, kind, key) || 1; } catch (e) { return 1; }
+  }
+  function focusTech(game, key) {
+    const F = focusBridge();
+    if (!F || !game || !game.focus) return 0;
+    try { return F.techBonus(game, key) || 0; } catch (e) { return 0; }
+  }
+  function focusValue(game, prop) {
+    const F = focusBridge();
+    if (!F || !game || !game.focus) return 1;
+    try { const m = F.focusMods(game); return (m && m[prop] != null) ? m[prop] : 1; } catch (e) { return 1; }
+  }
+
   function categoryDemand(game, catId, monthIndexOverride) {
     const cat = getCategory(catId);
     const mi = monthIndexOverride == null ? game.monthIndex : monthIndexOverride;
     const season = cat.seasonality[seasonMonth(mi)] || 1;
     const modifiers = aggregateModifiers(game);
     const growth = 1 + Math.max(0, mi) * 0.0018;
-    return Math.round(cat.demand * season * growth * (modifiers.demand[catId] || 1));
+    // FOCUS MOD: completed focus nodes can shift category demand
+    return Math.round(cat.demand * season * growth * (modifiers.demand[catId] || 1) * focusMult(game, 'demand', catId));
   }
 
   function getAIBrand(game, brandId) {
@@ -2092,7 +2371,9 @@
   }
 
   function activeAISnapshotProducts(game) {
-    return (game.market.aiProducts || []).filter(p => p.age <= 68);
+    // FOCUS MOD / ACQUISITIONS: products of an absorbed rival leave the rival pool.
+    const absorbedIds = new Set((game.market.aiBrands || []).filter(b => b.acquired).map(b => b.id));
+    return (game.market.aiProducts || []).filter(p => p.age <= 68 && !absorbedIds.has(p.brandId));
   }
 
   function computeMarketSnapshot(game, playerUnitsByCategory, options) {
@@ -2104,7 +2385,13 @@
       return brands.get(id);
     };
     addBrand(game.company.id, game.company.name, game.company.color || '#d5a734', true);
-    (game.market.aiBrands || []).forEach(b => addBrand(b.id, b.name, b.color, false, { en: b.en }));
+    // FOCUS MOD / ACQUISITIONS: absorbed brands are folded into the player's label.
+    const absorbed = (game.market.aiBrands || []).filter(b => b.acquired);
+    if (absorbed.length) {
+      const playerBrand = addBrand(game.company.id, game.company.name, game.company.color || '#d5a734', true);
+      playerBrand.absorbed = absorbed.map(b => ({ id: b.id, name: b.name }));
+    }
+    (game.market.aiBrands || []).filter(b => !b.acquired).forEach(b => addBrand(b.id, b.name, b.color, false, { en: b.en }));
     addBrand('others', '其他厂商', '#666b62', false);
     const categories = {};
     let playerTotal = 0;
@@ -2133,7 +2420,17 @@
           const value = clamp(fair / p.price, 0.35, 2.2);
           const ageF = clamp(1 - Math.max(0, p.age - 12) * 0.009, 0.55, 1);
           const brandF = brand ? (0.55 + (brand.awareness || 70) / 220 + (brand.reputation || 70) / 320) : 1;
-          return { p, w: Math.pow(p.score / 60, 1.75) * Math.pow(value, 0.75) * ageF * brandF };
+          // FOCUS MOD: player's focus can directly squeeze a named rival's share,
+          // and a rival's own completed focus makes it stronger.
+          let focusF = 1;
+          const FE = window.FocusEngine;
+          const push = FE ? FE.sharePushFor(game, p.brandId) : 0;
+          if (push > 0) focusF *= Math.max(0.2, 1 - push * 0.06);
+          if (FE) focusF *= 1 + (FE.aiFocusFactor(game, p.brandId) - 1) * 0.45;
+          // DIPLO: 外交状态直接改变对手在市场里的权重
+          const DE = window.DiplomacyEngine;
+          if (DE) focusF *= DE.brandWeightModifier(game, p.brandId);
+          return { p, w: Math.pow(p.score / 60, 1.75) * Math.pow(value, 0.75) * ageF * brandF * focusF };
         });
         const totalWeight = weighted.reduce((sum, x) => sum + x.w, 0);
         weighted.forEach(x => {
@@ -2166,8 +2463,99 @@
       aiProducts: aiProducts.map(p => ({ id: p.id, name: p.name, brandId: p.brandId, category: p.category, price: p.price, score: p.score, age: p.age, lastUnits: Math.round(p.lastUnits || 0), share: p.share || 0 }))
     };
     game.company.share = snapshot.playerShare;
+    snapshot.regions = computeRegionSnapshot(game, snapshot);
     game.market.snapshot = snapshot;
     return snapshot;
+  }
+
+  /* ---------------------------------------------------------
+     // MAP: regional market split.
+     Global demand is redistributed into six regions using
+     REGIONS[].weight; every brand gets its home-advantage bias,
+     and diplomacy effects are applied on top.
+     --------------------------------------------------------- */
+  function regionBiasFor(brandId, region) {
+    return (region.bias && region.bias[brandId]) || 1;
+  }
+  // // MAP + DIPLO: any modifier that shifts one brand inside one region
+  function regionFactorFor(game, brandId, regionId) {
+    let f = 1;
+    // MAP: player's own regional investment
+    if (brandId === game.company.id) {
+      const DE0 = window.DiplomacyEngine;
+      if (DE0) f *= DE0.regionInvestMultiplier(game, regionId);
+      const hit = game.company.diplo && game.company.diplo.regionHit && game.company.diplo.regionHit[regionId];
+      if (hit) f *= hit.mult;
+      const DE1 = window.DiplomacyEngine;
+      if (DE1) f *= DE1.playerWeightModifier(game);
+    }
+    const DIP = window.DiplomacyEngine;
+    if (DIP && game.diplomacy) {
+      const rel = game.diplomacy[brandId];
+      if (rel) {
+        (rel.regionPush || {})[regionId] && (f *= rel.regionPush[regionId]);
+        if (rel.sanctions && rel.sanctions.some(s => s.by === game.company.id)) f *= 0.72;
+        if (rel.supplyCut && rel.supplyCut.by === game.company.id) f *= 0.85;
+      }
+    }
+    return f;
+  }
+
+  function computeRegionSnapshot(game, snapshot) {
+    snapshot = snapshot || game.market.snapshot;
+    const regions = [];
+    const brands = (snapshot && snapshot.brands) || [];
+    const totalDemand = (snapshot && snapshot.totalDemand) || 0;
+    const playerRow = brands.find(b => b.isPlayer);
+    const playerShare = playerRow ? playerRow.share : 0;
+    const aiRows = brands.filter(b => !b.isPlayer && b.id !== 'others');
+    const othersRow = brands.find(b => b.id === 'others');
+
+    (D.REGIONS || []).forEach(region => {
+      const demand = Math.round(totalDemand * region.weight);
+      const entries = [];
+      let weightSum = 0;
+      const pushEntry = (id, name, color, isPlayer, baseShare) => {
+        if (baseShare <= 0) return;
+        let w = baseShare * regionBiasFor(id, region) * regionFactorFor(game, id, region.id);
+        // absorbed brands fold their presence into the player
+        if (w <= 0) return;
+        entries.push({ id, name, color, isPlayer: !!isPlayer, w });
+        weightSum += w;
+      };
+      aiRows.forEach(b => pushEntry(b.id, b.name, b.color, false, b.share));
+      // the player's global share is its base presence in every region
+      pushEntry(game.company.id, game.company.name, game.company.color || '#d5a734', true, Math.max(0.6, playerShare));
+      if (othersRow) pushEntry('others', '其他厂商', '#666b62', false, othersRow.share);
+
+      const list = entries.map(e => ({
+        id: e.id, name: e.name, color: e.color, isPlayer: e.isPlayer,
+        share: weightSum > 0 ? e.w / weightSum * 100 : 0,
+        units: weightSum > 0 ? Math.round(demand * e.w / weightSum) : 0
+      })).sort((a, b) => b.share - a.share);
+
+      const playerEntry = list.find(e => e.isPlayer);
+      const rank = playerEntry ? list.indexOf(playerEntry) + 1 : list.length;
+      const leader = list[0] || null;
+      regions.push({
+        id: region.id, name: region.name, short: region.short, en: region.en,
+        geo: region.geo, weight: region.weight,
+        demand, list,
+        playerShare: playerEntry ? playerEntry.share : 0,
+        playerRank: rank,
+        leaderId: leader ? leader.id : null,
+        leaderName: leader ? leader.name : '—',
+        leaderColor: leader ? leader.color : '#666b62',
+        leaderShare: leader ? leader.share : 0,
+        desc: region.desc
+      });
+    });
+
+    const byId = {};
+    regions.forEach(r => { byId[r.id] = r; });
+    const strongest = regions.slice().sort((a, b) => b.playerShare - a.playerShare)[0] || null;
+    const weakest = regions.slice().sort((a, b) => a.playerShare - b.playerShare)[0] || null;
+    return { regions, byId, strongest, weakest, playerShare };
   }
 
   function getCompanyMarketRank(game) {
@@ -2492,6 +2880,22 @@
     game.stats.peakMonthlyUnits = 0;
     refreshMilestones(game, { silent: true });
     normalizeChipState(game);
+    // FOCUS MOD: every company starts with its own focus tree and diplomacy ledger.
+    const FEngine = focusBridge();
+    if (FEngine) {
+      try {
+        FEngine.bindGame(game);
+        FEngine.initFocusState(game);
+        FEngine.initDiplomacyState(game);
+        if (window.DiplomacyEngine) window.DiplomacyEngine.ensureState(game);
+        // AI rivals begin with a couple of completed focuses so the world feels lived-in.
+        (game.market.aiBrands || []).forEach(b => {
+          b.focus = { completed: [], queue: [], fp: 6, pc: 0, progress: {} };
+          b.doctrine = b.doctrine || null;
+        });
+        applyFocusRuntime(game);
+      } catch (e) { /* never block a new game */ }
+    }
     game.updatedAt = Date.now();
     return game;
   }
@@ -3184,8 +3588,25 @@
     // New competitor launches.
     const launchChance = 0.69;
     const launches = maybe(launchChance) ? (maybe(0.18) ? 2 : 1) : 0;
+    // FOCUS MOD: absorbed rivals stop launching; survivors progress their own focus trees.
+    const FE = focusBridge();
+    if (FE && report) {
+      report.aiFocus = report.aiFocus || [];
+      game.market.aiBrands.filter(b => !b.acquired).forEach(b => {
+        try {
+          const done = FE.advanceAIFocus(game, b);
+          if (done) {
+            report.aiFocus.push({ brandId: b.id, brandName: b.name, title: done.title, desc: done.desc });
+            addNews(game, {
+              tag: '竞品国策', title: `${b.name} 完成「${done.title}」`,
+              text: `${done.desc} 竞争对手正在按自己的路线前进。`, tone: 'neutral', color: b.color
+            });
+          }
+        } catch (e) { /* keep the month running */ }
+      });
+    }
     for (let i = 0; i < launches; i++) {
-      const aiBrands = game.market.aiBrands.filter(b => b.focus && b.focus.length);
+      const aiBrands = game.market.aiBrands.filter(b => b.focus && b.focus.length && !b.acquired);
       if (!aiBrands.length) break;
       const totalWeight = aiBrands.reduce((s, b) => s + Math.pow(b.awareness / 70, 1.3) * (1 + b.aggression * 0.2), 0);
       let r = Math.random() * totalWeight;
@@ -3295,6 +3716,7 @@
       oneOffs: [], oneOffTotal: 0,
       rnd: [], researchCompleted: [],
       aiActions: [], events: [], achievements: [], warnings: [],
+      focusProgress: null, focusCompleted: [], aiFocus: [], acquisitions: [],
       brandBefore: { awareness: company.awareness, reputation: company.reputation, share: company.share },
       brandAfter: {},
       snapshot: null
@@ -3304,9 +3726,28 @@
     company.oneOffs = [];
 
     // R&D projects progress before design deadlines are reset.
+    // FOCUS MOD: inject national-focus multipliers into R&D / salary / chip power first.
+    applyFocusRuntime(game);
     monthlyResearchProgress(game, report);
     monthlyChipProgress(game, report);
     if (company.projects.length > 3) company.projects = company.projects.slice(0, 3);
+
+    // ----- national focus (国策) -----
+    const F = focusBridge();
+    if (F && game.focus) {
+      const fpResult = F.monthlyFocusProgress(game, report);
+      report.focusProgress = fpResult;
+      if (fpResult) report.focusCompleted = fpResult.completed || [];
+      applyFocusRuntime(game);
+    }
+    // DIPLO: expiry, AI initiative and sanctions tick every month
+    if (window.DiplomacyEngine && game.diplomacy) {
+      try {
+        window.DiplomacyEngine.tickRegionInvest(game);
+        const dres = window.DiplomacyEngine.monthlyDiplomacy(game, report);
+        if (dres && dres.aiActions && dres.aiActions.length) report.aiActions = (report.aiActions || []).concat(dres.aiActions);
+      } catch (e) { /* never block the month */ }
+    }
 
     // ----- production planning -----
     const activeCameras = game.products.filter(p => p.status === 'active');
@@ -3461,6 +3902,8 @@
     awarenessGain += Math.min(1.9, Math.sqrt(camerasSold) / 105) * (0.68 + company.reputation / 170);
     awarenessGain += Math.min(0.6, Math.sqrt(lensesSold) / 180);
     awarenessGain -= company.awareness * 0.0012;
+    // FOCUS MOD: 国策带来的认知月增量
+    awarenessGain += (focusValue(game, 'awarenessGain') || 0);
     company.awareness = clamp(company.awareness + awarenessGain, 0, 100);
 
     let repDelta = 0;
@@ -3480,6 +3923,8 @@
       repDelta += (opticalAvg - 68) * 0.012;
     }
     if (company.cash < 0) repDelta -= 0.1;
+    // FOCUS MOD: 国策带来的口碑月增量
+    repDelta += (focusValue(game, 'reputationGain') || 0);
     company.reputation = clamp(company.reputation + clamp(repDelta, -1.5, 1.5), 0, 100);
     company.fans = Math.max(0, Math.round((company.fans || 0) + camerasSold * 0.34 + lensesSold * 0.12 + Math.max(0, awarenessGain) * 1800));
     report.brandAfter = { awareness: company.awareness, reputation: company.reputation };
@@ -3559,6 +4004,14 @@
       }
     });
 
+    // 顾问与员工月结
+
+    if (window.FRAME_ADVISOR) window.FRAME_ADVISOR.monthly(game);
+
+    if (window.FRAME_STAFF) window.FRAME_STAFF.monthly(game);
+
+    /* STAFF_MONTHLY_DONE */
+
     game.monthIndex += 1;
     tickModifiers(game);
     rollMarketEvent(game, report);
@@ -3569,7 +4022,8 @@
     game.stats.peakMonthlyUnits = Math.max(game.stats.peakMonthlyUnits || 0, game.stats.lastMonthUnits || 0);
     game.lastReport = report;
     game.updatedAt = Date.now();
-    return report;
+    try { if (window.FrameEvents) window.FrameEvents.checkMonth(game); } catch (err) {}
+  return report;
   }
 
   // ---------- save / load ----------
@@ -3629,6 +4083,8 @@
       });
       normalizeArtState(game);
       normalizeChipState(game);
+      // FOCUS MOD: migrate focus / diplomacy state for old saves.
+      if (focusBridge()) { try { focusBridge().bindGame(game); focusBridge().normalizeFocusState(game); focusBridge().initDiplomacyState(game); if (window.DiplomacyEngine) window.DiplomacyEngine.normalizeDiplomacyState(game); applyFocusRuntime(game); } catch (e) { /* ignore */ } }
       return { ok: true, game };
     } catch (e) {
       return { ok: false, error: '读取存档失败：' + (e && e.message ? e.message : '未知错误') };
@@ -3654,6 +4110,8 @@
       if (!game.company.oneOffs) game.company.oneOffs = [];
       normalizeArtState(game);
       normalizeChipState(game);
+      // FOCUS MOD: migrate focus / diplomacy state for old saves.
+      if (focusBridge()) { try { focusBridge().bindGame(game); focusBridge().normalizeFocusState(game); focusBridge().initDiplomacyState(game); if (window.DiplomacyEngine) window.DiplomacyEngine.normalizeDiplomacyState(game); applyFocusRuntime(game); } catch (e) { /* ignore */ } }
       return { ok: true, game };
     } catch (e) {
       return { ok: false, error: '无法解析存档文件：' + (e && e.message ? e.message : '格式错误') };
@@ -3725,6 +4183,11 @@
     computeMarketSnapshot, getPlayerUnitsByCategory, aggregateModifiers, activeAISnapshotProducts,
     refreshMilestones, milestoneProgress, milestoneSatisfied, activeCategoriesCount,
     getCategoryBenchmark, getMarketPressureRows, validateDraftName, getActiveEmployees,
-    getFactoryUpkeep, monthlyResearchProgress, normalizeArtState, companyBreakdown: null
+    getFactoryUpkeep, monthlyResearchProgress, normalizeArtState, companyBreakdown: null,
+    computeRegionSnapshot, regionFactorFor,
+    processorsFor, defaultProcessorFor, processorFor, cmosModelsFor, cmosModelFor, processorAfRating,
+    // focus (国策) bridge + shared helpers used by focus.js
+    applyFocusRuntime, focusMult, focusTech, focusValue, createAfChipsForCompany, brandAfChip, addNews,
+    buildSeedCamera, buildSeedLens,
   };
 })();

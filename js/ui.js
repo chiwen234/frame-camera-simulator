@@ -28,6 +28,10 @@
   let lastModalFocus = null;
 
   const PAGE_META = {
+    command: { label: '指挥中心', group: '战略' },
+    focus: { label: '战略决策', group: '战略' },
+    map: { label: '世界地图', group: '战略' },
+    diplomacy: { label: '外交', group: '战略' },
     overview: { label: '公司总览', group: '经营' },
     products: { label: '产品中心', group: '经营' },
     design: { label: '设计工作室', group: '经营' },
@@ -39,12 +43,15 @@
     events: { label: '发布会', group: '市场' },
     operations: { label: '供应链与团队', group: '公司' },
     finance: { label: '财务中心', group: '公司' },
-    settings: { label: '设置与帮助', group: '系统' },
+    advisor: { label: '顾问团队', group: '公司' },
+  staff: { label: '员工与团队', group: '公司' },
+  settings: { label: '设置与帮助', group: '系统' },
     'studio-camera': { label: '相机设计', group: '设计' },
     'studio-lens': { label: '镜头设计', group: '设计' }
   };
 
   const UI = {
+    focusSelected: null,
     boot: {
       mode: 'takeover',
       companyId: 'canon',
@@ -55,7 +62,7 @@
       }
     },
     savePeek: null,
-    page: 'overview',
+    page: 'command',
     productTab: 'cameras',
     productFilter: 'all',
     marketTab: 'overview',
@@ -317,7 +324,15 @@
           
           
           
+          
+          
+          
+          
           <img src="${attr(PHOTO.url(hero.item))}" alt="${attr(hero.item.brand + ' ' + hero.item.model)} 实拍参考">
+          
+          
+          
+          
           
           
           
@@ -384,7 +399,59 @@
   }
 
   // ---------- boot ----------
+  function ensureBootHero() {
+    if (!document.getElementById('boot-empire-css')) {
+      const st = document.createElement('style');
+      st.id = 'boot-empire-css';
+      st.textContent = '.boot-title--empire{font-size:clamp(56px,7.2vw,104px)!important;line-height:1.02!important;letter-spacing:-.045em!important;font-weight:700;color:#f4f1e6}.boot-title--empire em{font-style:normal;color:#d8a65a}';
+      document.head.appendChild(st);
+    }
+    if (document.getElementById('boot-hero-css')) return;
+    const el = document.createElement('style');
+    el.id = 'boot-hero-css';
+    el.textContent = `
+  /* 启动页主视觉 */
+  .boot-hero{position:relative}
+  .boot-hero::before{
+    content:"";position:fixed;inset:0;z-index:-1;
+    background:#0b0d0b url(assets/art/hero-title.png) center/cover no-repeat;
+    opacity:.55;
+    pointer-events:none;
+  }
+  .boot-hero::after{
+    content:"";position:fixed;inset:0;z-index:-1;
+    background:linear-gradient(180deg,rgba(11,13,11,.55) 0%,rgba(11,13,11,.88) 60%,#0b0d0b 100%);
+    pointer-events:none;
+  }
+`;
+    document.head.appendChild(el);
+    document.body.classList.add('boot-hero');
+  }
+
+  // 难度指数：1★ 最易，5★ 最难（按开局现金 / 份额 / 口碑 / 潜能 / 精神负担综合）
+  const DIFFICULTY = {
+    sony: 1, canon: 2, fujifilm: 3, nikon: 3,
+    panasonic: 4, dji: 4, insta360: 5, startup: 5
+  };
+  const DIFF_LABEL = { 1: '轻松', 2: '普通', 3: '挑战', 4: '困难', 5: '地狱' };
+
+  function diffStars(id) {
+    const n = DIFFICULTY[id] || 3;
+    let out = '';
+    for (let i = 1; i <= 5; i++) out += (i <= n ? '\u2605' : '\u2606');
+    return out;
+  }
+
+  let bootIntroPlayed = false;
+  function playBootIntro() {
+    if (bootIntroPlayed) return;
+    bootIntroPlayed = true;
+    if (window.BootFX && window.BootFX.intro) window.BootFX.intro();
+  }
+
   function renderBoot() {
+    setTimeout(playBootIntro, 60);
+    ensureBootHero();
     const peek = UI.savePeek;
     const mode = UI.boot.mode;
     const selected = D.COMPANIES.find(c => c.id === UI.boot.companyId) || D.COMPANIES[0];
@@ -394,7 +461,15 @@
           
           
           
+          
+          
+          
+          
           <button class="company-card ${c.id === selected.id ? 'is-active' : ''}" style="--brand-c:${attr(c.color)}" data-boot-company="${attr(c.id)}">
+          
+          
+          
+          
           
           
           
@@ -402,7 +477,15 @@
           
           
           
+          
+          
+          
+          
             <div class="company-card-en">${esc(c.en)} · ${esc(c.hq)}</div>
+          
+          
+          
+          
           
           
           
@@ -410,7 +493,16 @@
           
           
           
+          
+          
+          
+          
+            <div class="company-card-diff"><span class="diff-stars" data-diff="${DIFFICULTY[c.id] || 3}">${diffStars(c.id)}</span><span class="diff-label">${DIFF_LABEL[DIFFICULTY[c.id] || 3]}</span></div>
             <div class="company-card-stats"><span>口碑 <b>${c.reputation}</b></span><span>在售 <b>${c.catalog.length}</b></span><span>基础份额 <b>${(c.startingShare || 0).toFixed(1)}%</b></span></div>
+          
+          
+          
+          
           
           
           
@@ -421,7 +513,15 @@
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -429,11 +529,23 @@
           
           
           
+          
+          
+          
+          
             <div class="company-selected-sub">${esc(selected.brief)}</div>
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -443,9 +555,17 @@
           
           
           
+          
+          
+          
+          
           ${selected.strengths.slice(0, 4).map(s => `<span class="mini-tag">${esc(s)}</span>`).join('')}
         </div>
         <div class="company-selected-stats">
+          
+          
+          
+          
           
           
           
@@ -453,7 +573,15 @@
           
           
           
+          
+          
+          
+          
           <div class="company-selected-stat"><label>品牌认知</label><b>${selected.awareness} / 100</b></div>
+          
+          
+          
+          
           
           
           
@@ -463,7 +591,15 @@
           
           
           
+          
+          
+          
+          
           if (!ART) return '';
+          
+          
+          
+          
           
           
           
@@ -471,7 +607,15 @@
           
           
           
+          
+          
+          
+          
           if (!refs.length) return '';
+          
+          
+          
+          
           
           
           
@@ -479,7 +623,15 @@
           
           
           
+          
+          
+          
+          
             <div class="boot-brand-dna-head"><span>${icon('eye')} 已载入品牌外形基准</span><b>${esc(selected.positioning)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -487,7 +639,15 @@
           
           
           
+          
+          
+          
+          
               ${refs.map(m => {
+          
+          
+          
+          
           
           
           
@@ -495,7 +655,15 @@
           
           
           
+          
+          
+          
+          
                 return `<div class="boot-brand-ref">${ph
+          
+          
+          
+          
           
           
           
@@ -503,7 +671,15 @@
           
           
           
+          
+          
+          
+          
                   : `<canvas data-boot-ref="${attr(m.id)}"></canvas>`}<span>${esc(m.name)}</span><em>${esc(m.year)} · ${esc(m.mount)}</em></div>`;
+          
+          
+          
+          
           
           
           
@@ -511,11 +687,23 @@
           
           
           
+          
+          
+          
+          
             </div>
           
           
           
+          
+          
+          
+          
             <div class="boot-brand-dna-note">接管后，产品图直接使用该品牌的真实机型照片；新设计会继承这套比例与设计语言，不再生成假外观。</div>
+          
+          
+          
+          
           
           
           
@@ -529,7 +717,15 @@
           
           
           
+          
+          
+          
+          
           <div class="form-section-label">01 / 公司身份</div>
+          
+          
+          
+          
           
           
           
@@ -537,7 +733,15 @@
           
           
           
+          
+          
+          
+          
             <div class="form-field"><label>公司名称</label><input class="text-input" maxlength="18" value="${attr(startup.name)}" data-boot-field="name" placeholder="例如：光屿影像"></div>
+          
+          
+          
+          
           
           
           
@@ -545,7 +749,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -553,7 +765,15 @@
           
           
           
+          
+          
+          
+          
             <div class="form-field"><label>总部 / 城市</label><input class="text-input" maxlength="24" value="${attr(startup.hq)}" data-boot-field="hq"></div>
+          
+          
+          
+          
           
           
           
@@ -561,9 +781,17 @@
           
           
           
+          
+          
+          
+          
           </div>
         </div>
         <div>
+          
+          
+          
+          
           
           
           
@@ -571,7 +799,15 @@
           
           
           
+          
+          
+          
+          
           <div class="arch-grid">
+          
+          
+          
+          
           
           
           
@@ -579,7 +815,15 @@
           
           
           
+          
+          
+          
+          
               <button class="arch-card ${startup.archetype === a.id ? 'is-active' : ''}" data-boot-archetype="${attr(a.id)}">
+          
+          
+          
+          
           
           
           
@@ -587,7 +831,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="arch-desc">${esc(a.desc)}</div>
+          
+          
+          
+          
           
           
           
@@ -595,9 +847,17 @@
           
           
           
+          
+          
+          
+          
           </div>
         </div>
         <div>
+          
+          
+          
+          
           
           
           
@@ -605,7 +865,15 @@
           
           
           
+          
+          
+          
+          
           <div class="style-swatches">
+          
+          
+          
+          
           
           
           
@@ -613,7 +881,15 @@
           
           
           
+          
+          
+          
+          
               <button class="style-swatch ${startup.style === s.id ? 'is-active' : ''}" data-boot-style="${attr(s.id)}" title="${attr(s.desc)}">
+          
+          
+          
+          
           
           
           
@@ -621,7 +897,15 @@
           
           
           
+          
+          
+          
+          
                 <label>${esc(s.name)}</label>
+          
+          
+          
+          
           
           
           
@@ -629,7 +913,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -637,7 +929,15 @@
           
           
           
+          
+          
+          
+          
             ${['#a8b8ba', '#d8a65a', '#b7372c', '#6e8f7d', '#d5a734', '#8eaab7', '#d6d2c7'].map(c => `<button class="accent-dot ${startup.accentColor === c ? 'is-active' : ''}" style="background:${c}" data-boot-accent="${c}" title="品牌主色 ${c}"></button>`).join('')}
+          
+          
+          
+          
           
           
           
@@ -645,9 +945,17 @@
           
           
           
+          
+          
+          
+          
           </div>
         </div>
         <div>
+          
+          
+          
+          
           
           
           
@@ -655,11 +963,23 @@
           
           
           
+          
+          
+          
+          
           <div class="choice-row">
           
           
           
+          
+          
+          
+          
             ${Object.values(D.SEGMENTS).map(s => `<button class="choice-btn ${startup.targetSegment === s.id ? 'is-active' : ''}" data-boot-audience="${attr(s.id)}">${esc(s.name)}</button>`).join('')}
+          
+          
+          
+          
           
           
           
@@ -669,7 +989,15 @@
           
           
           
+          
+          
+          
+          
           <div class="form-section-label">05 / 创业难度</div>
+          
+          
+          
+          
           
           
           
@@ -677,7 +1005,15 @@
           
           
           
+          
+          
+          
+          
             ${Object.values(D.DIFFICULTIES).map(d => `
+          
+          
+          
+          
           
           
           
@@ -685,7 +1021,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="difficulty-name">${esc(d.name)}<span class="difficulty-badge">${esc(d.label)}</span></div>
+          
+          
+          
+          
           
           
           
@@ -693,7 +1037,15 @@
           
           
           
+          
+          
+          
+          
               </button>`).join('')}
+          
+          
+          
+          
           
           
           
@@ -703,7 +1055,15 @@
           
           
           
+          
+          
+          
+          
           <div class="callout-title">${icon('info')} 从零开始意味着什么</div>
+          
+          
+          
+          
           
           
           
@@ -718,7 +1078,15 @@
           
           
           
+          
+          
+          
+          
           <div class="boot-continue-title">发现本地存档 · ${esc(peek.name || '未命名公司')}</div>
+          
+          
+          
+          
           
           
           
@@ -733,7 +1101,15 @@
           
           
           
+          
+          
+          
+          
           <header class="boot-topbar">
+          
+          
+          
+          
           
           
           
@@ -741,11 +1117,23 @@
           
           
           
+          
+          
+          
+          
               <span class="brand-mark"></span>
           
           
           
+          
+          
+          
+          
               <div>
+          
+          
+          
+          
           
           
           
@@ -753,7 +1141,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="brand-sub">CAMERA COMPANY SIMULATOR · 2026</div>
+          
+          
+          
+          
           
           
           
@@ -761,7 +1157,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -769,7 +1173,15 @@
           
           
           
+          
+          
+          
+          
               <span class="boot-version">INDUSTRIAL IMAGING SANDBOX / PRIVATE BUILD</span>
+          
+          
+          
+          
           
           
           
@@ -777,7 +1189,15 @@
           
           
           
+          
+          
+          
+          
                 <button class="btn btn-ghost btn-sm" data-action="open-help">玩法说明</button>
+          
+          
+          
+          
           
           
           
@@ -785,7 +1205,15 @@
           
           
           
+          
+          
+          
+          
               </div>
+          
+          
+          
+          
           
           
           
@@ -793,7 +1221,15 @@
           
           
           
+          
+          
+          
+          
           </header>
+          
+          
+          
+          
           
           
           
@@ -801,7 +1237,15 @@
           
           
           
+          
+          
+          
+          
             <section class="boot-hero">
+          
+          
+          
+          
           
           
           
@@ -809,15 +1253,31 @@
           
           
           
+          
+          
+          
+          
                 <div class="boot-kicker">INDUSTRIAL PRODUCT SIMULATOR · 2026</div>
           
           
           
-                <h1 class="boot-title">造一台<br><em>真正想买的</em><br><span class="dim">相机。</span></h1>
           
           
           
-                <p class="boot-lede">从一块传感器、一条饰线、一个握柄开始，设计机身与镜头，建立你的影像帝国。参数决定它能不能拍，外形决定用户想不想拿起它。</p>
+          
+                <h1 class="boot-title boot-title--empire">相机<em>帝国</em></h1>
+          
+          
+          
+          
+          
+          
+          
+                <p class="boot-lede">从一块传感器开始，定义机身、镜头与标准。卡住供应链，抢下渠道，写下这个行业的规则。</p>
+          
+          
+          
+          
           
           
           
@@ -825,19 +1285,39 @@
           
           
           
-                  <span class="boot-feature">全机身工业设计</span>
           
           
           
-                  <span class="boot-feature">实时多视角渲染</span>
+          
+                  <span class="boot-feature">七家厂商博弈</span>
           
           
           
-                  <span class="boot-feature">真实卡口与市场</span>
           
           
           
-                  <span class="boot-feature">动态 AI 竞品</span>
+          
+                  <span class="boot-feature">供应链卡脖子</span>
+          
+          
+          
+          
+          
+          
+          
+                  <span class="boot-feature">1280 个决策</span>
+          
+          
+          
+          
+          
+          
+          
+                  <span class="boot-feature">三年定生死</span>
+          
+          
+          
+          
           
           
           
@@ -845,7 +1325,15 @@
           
           
           
+          
+          
+          
+          
               </div>
+          
+          
+          
+          
           
           
           
@@ -853,11 +1341,23 @@
           
           
           
+          
+          
+          
+          
                 ${buildShowcase()}
           
           
           
+          
+          
+          
+          
               </div>
+          
+          
+          
+          
           
           
           
@@ -865,7 +1365,15 @@
           
           
           
+          
+          
+          
+          
                 <span>新公司 / 接管巨头</span><span>单机本地存档</span><span>无联机 · 无内购</span><span>2026 现代影像市场</span>
+          
+          
+          
+          
           
           
           
@@ -873,7 +1381,15 @@
           
           
           
+          
+          
+          
+          
             </section>
+          
+          
+          
+          
           
           
           
@@ -881,7 +1397,15 @@
           
           
           
+          
+          
+          
+          
               <div class="boot-console-head">
+          
+          
+          
+          
           
           
           
@@ -889,7 +1413,15 @@
           
           
           
+          
+          
+          
+          
                   <div class="console-label">STARTING POINT / ${mode === 'takeover' ? 'TAKEOVER' : 'FROM SCRATCH'}</div>
+          
+          
+          
+          
           
           
           
@@ -897,7 +1429,15 @@
           
           
           
+          
+          
+          
+          
                 </div>
+          
+          
+          
+          
           
           
           
@@ -905,7 +1445,15 @@
           
           
           
+          
+          
+          
+          
               </div>
+          
+          
+          
+          
           
           
           
@@ -913,7 +1461,15 @@
           
           
           
+          
+          
+          
+          
                 <button class="boot-mode ${mode === 'takeover' ? 'is-active' : ''}" data-boot-mode="takeover">
+          
+          
+          
+          
           
           
           
@@ -921,11 +1477,23 @@
           
           
           
+          
+          
+          
+          
                   <div class="boot-mode-desc">继承品牌、技术积累、产品线与供应链，从巨人的肩膀上重新出发。</div>
           
           
           
+          
+          
+          
+          
                 </button>
+          
+          
+          
+          
           
           
           
@@ -933,7 +1501,15 @@
           
           
           
+          
+          
+          
+          
                   <div class="boot-mode-top"><span class="mode-dot"></span>从零新建公司</div>
+          
+          
+          
+          
           
           
           
@@ -941,11 +1517,23 @@
           
           
           
+          
+          
+          
+          
                 </button>
           
           
           
+          
+          
+          
+          
               </div>
+          
+          
+          
+          
           
           
           
@@ -953,11 +1541,23 @@
           
           
           
+          
+          
+          
+          
                 ${mode === 'takeover' ? takeoverContent : startupContent}
           
           
           
+          
+          
+          
+          
               </div>
+          
+          
+          
+          
           
           
           
@@ -965,7 +1565,15 @@
           
           
           
+          
+          
+          
+          
                 ${archive}
+          
+          
+          
+          
           
           
           
@@ -973,28 +1581,60 @@
           
           
           
+          
+          
+          
+          
                   <div class="boot-start-note">
           
           
           
+          
+          
+          
+          
                     
+          
+          
+          
+          
           
           
           ${mode === 'takeover'
           
           
           
+          
+          
+          
+          
                     
+          
+          
+          
+          
           
           
             ? `<strong>${esc(selected.name)}</strong> 已拥有真实产品组合与品牌资产。你将直接面对 2026 年的竞争。`
           
           
           
+          
+          
+          
+          
                     
           
           
+          
+          
+          
+          
             : `<strong>${esc(startup.name || '新公司')}</strong> 将获得 ${money(D.DIFFICULTIES[startup.difficulty]?.cash || 150000000)} 启动资金。第一台相机决定品牌的第一印象。`}
+          
+          
+          
+          
           
           
           
@@ -1002,7 +1642,15 @@
           
           
           
+          
+          
+          
+          
                   <button class="btn btn-primary btn-lg" data-action="boot-start">${icon('arrowRight')} ${startLabel}</button>
+          
+          
+          
+          
           
           
           
@@ -1010,7 +1658,15 @@
           
           
           
+          
+          
+          
+          
               </div>
+          
+          
+          
+          
           
           
           
@@ -1018,7 +1674,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -1026,11 +1690,23 @@
           
           
           
+          
+          
+          
+          
             <div class="boot-mobile-dock-meta"><b>${mode === 'takeover' ? esc(selected.name) : esc(startup.name || '新公司')}</b><span>${mode === 'takeover' ? '接管现有品牌与产品线' : '从零建立你的影像公司'}</span></div>
           
           
           
+          
+          
+          
+          
             <button class="btn btn-primary" data-action="boot-start">${mode === 'takeover' ? '接管并开始' : '创建并开始'}</button>
+          
+          
+          
+          
           
           
           
@@ -1063,7 +1739,15 @@
           
           
           
+          
+          
+          
+          
           <div class="brand-word">FRAME</div>
+          
+          
+          
+          
           
           
           
@@ -1075,7 +1759,15 @@
           
           
           
+          
+          
+          
+          
           <span class="sidebar-company-name">${esc(c.name)}</span>
+          
+          
+          
+          
           
           
           
@@ -1085,11 +1777,23 @@
           
           
           
+          
+          
+          
+          
           <span>${E.monthLabel(game.monthIndex)}</span>
           
           
           
+          
+          
+          
+          
           <span>份额 <b>${(c.share || 0).toFixed(1)}%</b></span>
+          
+          
+          
+          
           
           
           
@@ -1103,7 +1807,19 @@
           
           
           
+          
+          
+          
+          
+          ${navItem('command', 'globe', '指挥中心')}
+          ${navItem('focus', 'target', '战略决策', game.focus && game.focus.queue && game.focus.queue.length ? game.focus.queue.length : '')}
+          ${navItem('map', 'globe', '世界地图')}
+          ${navItem('diplomacy', 'users', '外交')}
           ${navItem('overview', 'overview', '公司总览')}
+          
+          
+          
+          
           
           
           
@@ -1111,12 +1827,25 @@
           
           
           
+          
+          
+          
+          
           ${navItem('design', 'design', '设计工作室', game.drafts.camera || game.drafts.lens ? '●' : '')}
           
           
           
+          
+          
+          
+          
           ${navItem('research', 'flask', '研发中心', projectCount ? projectCount : '')}
+          
           ${navItem('chips', 'cpu', '芯片实验室', game.company.chipPrograms && game.company.chipPrograms.length ? game.company.chipPrograms.length : '')}
+          
+          
+          
+          
           
           
           
@@ -1129,11 +1858,20 @@
           
           
           
+          
+          
+          
+          
           ${navItem('market', 'globe', '市场情报')}
           
           
           
+          
+          
+          
+          
           ${navItem('marketing', 'megaphone', '营销中心')}
+          
           ${navItem('events', 'megaphone', '发布会', (game.launchEvents || []).length ? (game.launchEvents || []).length : '')}
         </nav>
       </div>
@@ -1143,7 +1881,15 @@
           
           
           
+          
+          
+          
+          
           ${navItem('operations', 'factory', '供应链与团队')}
+          
+          
+          
+          
           
           
           
@@ -1166,11 +1912,20 @@
     return `
       <div class="topbar-left">
         <button class="icon-btn mobile-menu-btn" data-action="toggle-sidebar" aria-label="打开导航">${icon('menu')}</button>
-        <div class="topbar-context">
+        <button class="icon-btn topbar-menu-btn" data-action="nav" data-page="settings" title="设置与菜单" aria-label="设置与菜单">${icon('menu')}</button>
+  <div class="topbar-context">
+          
+          
+          
+          
           
           
           
           <div class="topbar-breadcrumb">FRAME / ${esc(meta.group)} / <b>${esc(meta.label)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -1182,7 +1937,15 @@
           
           
           
+          
+          
+          
+          
           <div class="resource-chip">
+          
+          
+          
+          
           
           
           
@@ -1190,7 +1953,15 @@
           
           
           
+          
+          
+          
+          
             <div class="resource-meta"><label>现金</label><b class="${c.cash < 0 ? 'is-negative' : ''}">${money(c.cash)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -1198,7 +1969,15 @@
           
           
           
+          
+          
+          
+          
           <div class="resource-chip">
+          
+          
+          
+          
           
           
           
@@ -1206,7 +1985,15 @@
           
           
           
+          
+          
+          
+          
             <div class="resource-meta"><label>估值</label><b>${money(E.companyValuation(game))}</b></div>
+          
+          
+          
+          
           
           
           
@@ -1214,7 +2001,15 @@
           
           
           
+          
+          
+          
+          
           <div class="resource-chip">
+          
+          
+          
+          
           
           
           
@@ -1222,7 +2017,15 @@
           
           
           
+          
+          
+          
+          
             <div class="resource-meta"><label>份额</label><b>${(c.share || 0).toFixed(1)}%</b></div>
+          
+          
+          
+          
           
           
           
@@ -1236,6 +2039,11 @@
   function renderPage() {
     if (!game) return '';
     switch (UI.page) {
+      case 'command': return renderCommandPage();
+      case 'news': return renderNewsPage();
+      case 'focus': return renderFocusPage();
+      case 'map': return renderMapPage();
+      case 'diplomacy': return renderDiplomacyPage();
       case 'products': return renderProductsPage();
       case 'design': return renderDesignHub();
       case 'gallery': return renderGalleryPage();
@@ -1248,9 +2056,13 @@
       case 'marketing': return renderMarketingPage();
       case 'operations': return renderOperationsPage();
       case 'finance': return renderFinancePage();
+      case 'advisor': return renderAdvisorPage();
+
+      case 'staff': return renderStaffPage();
+
       case 'settings': return renderSettingsPage();
       case 'overview':
-      default: return renderOverviewPage();
+      default: return renderOverviewWithSpirits();
     }
   }
 
@@ -1261,13 +2073,22 @@
     document.body.classList.toggle('reduce-motion', !!(game.settings && game.settings.reducedMotion));
     appEl.classList.remove('is-hidden');
     appEl.setAttribute('aria-hidden', 'false');
-    appEl.classList.toggle('sidebar-open', !!UI.sidebarOpen);
+    appEl.classList.remove('sidebar-open');
     bootRoot.innerHTML = '';
-    sidebarEl.innerHTML = renderSidebar();
+    if (sidebarEl) sidebarEl.innerHTML = '';
     topbarEl.innerHTML = renderTopbar();
     viewEl.innerHTML = renderPage();
     paintArtCanvases(viewEl);
     fillArtShots(viewEl);
+    if (UI.page === 'focus' && window.FocusUI && window.FocusUI.mount) window.FocusUI.mount();
+    mountCommandPage();
+    try { if (window.NewsUI) window.NewsUI.renderLayer(game); } catch (e) { }
+    try {
+      if (window.CommandUI) {
+        const extra = [{ page: 'news', icon: 'launch', label: '新闻', hint: '新闻档案' }];
+        if (!CommandUI.RAIL.some(r => r.page === 'news')) CommandUI.RAIL.push(extra[0]);
+      }
+    } catch (e) { }
     if (UI.page === 'gallery') {
       drawGallerySilhouettes(viewEl);
       galleryPhotos(viewEl);
@@ -1379,6 +2200,222 @@
     <div class="chart-legend mt-8"><span><i class="legend-mark"></i>净营收</span><span><i class="legend-mark good"></i>净利润</span><span style="margin-left:auto">最近 ${hist.length} 个月</span></div>`;
   }
 
+  // ---------- 战略决策 / 收购 ----------
+  function renderNewsPage() {
+    const head = '<div class="page-head"><div class="page-head-main">'
+      + '<div class="eyebrow">ARCHIVE / 新闻档案</div>'
+      + '<h1 class="page-title">新闻档案</h1>'
+      + '<p class="page-sub">世界大事所有人可见；你自己完成的国策只记录在这里。</p>'
+      + '</div></div>';
+    const body = window.NewsUI ? window.NewsUI.renderArchive(game) : '';
+    const pend = window.NewsUI ? window.NewsUI.pending(game) : [];
+    const wait = pend.length ? '<div style="margin:12px 0;padding:10px;border:1px solid #d8a65a;color:#c9a35c;font-size:11px">有 ' + pend.length + ' 条播报待处理，请看右下角。</div>' : '';
+    return head + wait + body;
+  }
+  function renderFocusPage() {
+    if (!window.FocusUI) return '<div class="empty-inline">决策界面未加载。</div>';
+    window.__FRAME_GAME__ = game;
+    window.FocusUI.ensureStyles();
+    return window.FocusUI.renderFocusPage(game);
+  }
+
+  // 供指挥中心面板复用现有页面渲染
+  window.__FRAME_RENDER_PAGE__ = function (page) {
+    // 面板可能在内层 game 尚未赋值时被调用，先从引擎取当前局
+    if (!game) {
+      const cg = window.FocusEngine && window.FocusEngine.currentGame && window.FocusEngine.currentGame();
+      if (cg) game = cg;
+    }
+    if (!game) return '<div class="empty-inline">还没有进行中的公司</div>';
+    const keep = UI.page;
+    UI.page = page;
+    let html = '';
+    try { html = renderPage(); } catch (e) { html = '<div class="empty-inline">渲染失败：' + esc(e.message) + '</div>'; }
+    UI.page = keep;
+    return html;
+  };
+
+  // ---------- 指挥中心（地球 + 图标栏） ----------
+  function renderCommandPage() {
+    if (!window.CommandUI) return '<div class="empty-inline">指挥中心未加载。</div>';
+    window.CommandUI.ensureCSS();
+    return window.CommandUI.renderCommandPage(game);
+  }
+  function mountCommandPage() {
+    if (UI.page !== 'command' || !window.CommandUI) return;
+    if (window.__CMD_GLOBE__) { try { window.__CMD_GLOBE__.stop(); } catch (e) { } window.__CMD_GLOBE__ = null; }
+    window.CommandUI.mountGlobe(game);
+  }
+
+  // ---------- 世界地图 / 外交 ----------
+  function renderMapPage() {
+    if (!window.StrategyUI) return '<div class="empty-inline">地图界面未加载。</div>';
+    window.__FRAME_GAME__ = game;
+    window.StrategyUI.ensureStyles();
+    return window.StrategyUI.renderMapPage(game);
+  }
+  function renderDiplomacyPage() {
+    if (!window.StrategyUI) return '<div class="empty-inline">外交界面未加载。</div>';
+    window.__FRAME_GAME__ = game;
+    window.StrategyUI.ensureStyles();
+    return window.StrategyUI.renderDiplomacyPage(game);
+  }
+
+  // ---------- 公司精神总览（总览页顶部） ----------
+  function renderSpiritOverview() {
+    const SP = window.FRAME_SPIRITS;
+    if (!SP) return '';
+    const list = SP.activeSpirits(game);
+    const good = list.filter(x => x.kind === 'good');
+    const bad = list.filter(x => x.kind === 'bad');
+    const tier = SP.tierOf(game.company.id);
+    const tierName = SP.tierLabel(tier);
+    const tierColor = tier === 'strong' ? '#a9c97a' : tier === 'mid' ? '#d8a65a' : '#d08a72';
+    const fmt = (sp) => {
+      const e = sp.effects || {};
+      const parts = [];
+      if (e.rnd) parts.push('研发 ×' + Number(e.rnd).toFixed(2));
+      if (e.chip) parts.push('芯片 ×' + Number(e.chip).toFixed(2));
+      if (e.dsp) parts.push('对焦算法 ×' + Number(e.dsp).toFixed(2));
+      if (e.talent) parts.push('团队效率 ×' + Number(e.talent).toFixed(2));
+      if (e.salary) parts.push('人力成本 ×' + Number(e.salary).toFixed(2));
+      if (e.qc) parts.push('品控缺陷 ×' + Number(e.qc).toFixed(2));
+      if (e.tech) Object.keys(e.tech).forEach(k => parts.push((k === 'af' ? '对焦技术' : k) + ' +' + e.tech[k]));
+      if (e.cost) Object.keys(e.cost).forEach(k => parts.push((k === 'total' ? '整机' : k === 'sensor' ? '传感器' : k === 'optics' ? '光学' : k) + '成本 ×' + Number(e.cost[k]).toFixed(2)));
+      if (e.demand) Object.keys(e.demand).forEach(k => {
+        const nm = (D.CATEGORIES[k] && D.CATEGORIES[k].short) || k;
+        parts.push(nm + '需求 ×' + Number(e.demand[k]).toFixed(2));
+      });
+      if (e.reputation) parts.push('口碑 ' + (e.reputation > 0 ? '+' : '') + e.reputation);
+      if (e.awareness) parts.push('认知 ' + (e.awareness > 0 ? '+' : '') + e.awareness);
+      return parts.join(' · ') || '—';
+    };
+    const chip = (sp) => `<span class="spirit-chip ${sp.kind}">
+        <span class="ic">${sp.icon || (sp.kind === 'good' ? '+' : '−')}</span>
+        <span class="nm">${esc(sp.name)}</span>
+        <span class="ef">${esc(fmt(sp))}</span>
+        ${sp.reward ? '<span class="src">决策</span>' : ''}
+      </span>`;
+    return `<div class="spirit-panel">
+      <div class="spirit-head">
+        <div><span class="spirit-title">公司精神</span>
+          <span class="spirit-tier" style="color:${tierColor};border-color:${tierColor}55">${tierName}阵营</span>
+          <span class="spirit-count">正面 ${good.length} · 负面 ${bad.length}</span></div>
+        <button class="btn btn-sm" data-action="nav" data-page="focus" title="打开战略决策树"
+          style="display:inline-flex;align-items:center;gap:7px;border:1px solid #d8a65a;background:linear-gradient(180deg,#332a1c,#241d15);color:#f0e2c0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d8a65a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h4v4H4zM4 16h4v4H4zM16 9h4v4h-4z"/>
+            <path d="M8 6h5v11h3M8 18h5v-6"/>
+          </svg>
+          <span>战略决策</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d8a65a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+      <div class="spirit-row good-row">
+        <span class="row-label" style="color:#a9c97a">优势</span>
+        ${good.map(chip).join('') || '<span class="spirit-empty">暂无</span>'}
+      </div>
+      <div class="spirit-row bad-row">
+        <span class="row-label" style="color:#d08a72">包袱</span>
+        ${bad.map(chip).join('') || '<span class="spirit-empty">暂无</span>'}
+      </div>
+    </div>`;
+  }
+  function ensureSpiritStyles() {
+    if (document.getElementById('spirit-css')) return;
+    const el = document.createElement('style');
+    el.id = 'spirit-css';
+    el.textContent = `
+.spirit-panel{border:1px solid rgba(216,166,90,.22);border-radius:12px;padding:12px 14px;margin-bottom:16px;background:rgba(216,166,90,.03)}
+.spirit-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.spirit-title{font-size:13px;font-weight:600;letter-spacing:.05em}
+.spirit-tier{font-size:9px;padding:1px 7px;border-radius:4px;border:1px solid;margin-left:8px}
+.spirit-count{font-size:9px;color:var(--faint,#7d8276);margin-left:10px}
+.spirit-row{display:flex;flex-wrap:wrap;gap:7px;align-items:center;padding:5px 0}
+.row-label{font-size:9px;letter-spacing:.1em;width:38px;flex:0 0 auto}
+.spirit-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:7px;border:1px solid;font-size:10px}
+.spirit-chip.good{background:rgba(144,168,108,.1);border-color:rgba(144,168,108,.4)}
+.spirit-chip.bad{background:rgba(200,90,74,.1);border-color:rgba(200,90,74,.4)}
+.spirit-chip .ic{font-size:9px;opacity:.85}
+.spirit-chip.good .ic{color:#a9c97a}
+.spirit-chip.bad .ic{color:#d08a72}
+.spirit-chip .nm{font-weight:600;color:#e8e5da}
+.spirit-chip .ef{font-size:9px;color:var(--faint,#7d8276)}
+.spirit-chip .src{font-size:8px;color:#d8a65a;border:1px solid rgba(216,166,90,.4);border-radius:3px;padding:0 4px}
+.spirit-empty{font-size:9px;color:var(--faint,#7d8276)}
+`;
+    document.head.appendChild(el);
+  }
+  function renderOverviewWithSpirits() {
+    ensureSpiritStyles();
+    const base = renderOverviewPage();
+    const panel = renderSpiritOverview() || '';
+    const team = renderTeamPanel() || '';
+    if (!panel && !team) return base;
+    const idx = base.indexOf('<div class="page-head"');
+    if (idx < 0) return panel + team + base;
+    const end = base.indexOf('</div>', base.indexOf('</p>', idx));
+    const cut = base.indexOf('>', end) + 1;
+    if (cut <= 0) return base + panel + team;
+    return base.slice(0, cut) + panel + team + base.slice(cut);
+  }
+
+  function renderTeamPanel() {
+    if (!window.FRAME_ADVISOR || !window.FRAME_STAFF) return '';
+    const A = window.FRAME_ADVISOR, S = window.FRAME_STAFF;
+    A.ensure(game); S.ensure(game);
+
+    function slotCard(slot) {
+      const cur = A.current(game, slot);
+      const cands = A.candidates(slot, game);
+      const stars = cur ? '\u2605'.repeat(cur.tier) + '\u2606'.repeat(3 - cur.tier) : '';
+      const body = cur
+        ? `<div class="tm-adv-row"><img class="tm-adv-face" src="assets/art/${cur.photo}.png" alt="">
+             <div class="tm-adv-info"><b>${esc(cur.name)}</b><span class="tm-adv-stars">${stars}</span>
+             <p>${esc(cur.desc)}</p><p class="tm-adv-eff">${esc(cur.traitDesc || '')}</p>
+             <span class="tm-adv-salary">月薪 ${cur.salary.toFixed(2)} 亿 · 忠诚 ${Math.round(game.advisors.loyalty[cur.id] || 60)}</span></div>
+           </div>
+           <div class="tm-adv-actions"><button class="btn btn-sm btn-secondary" data-action="adv-dismiss" data-slot="${slot}">解约</button></div>`
+        : `<div class="tm-adv-empty">空缺</div>`;
+      const list = cands.slice(0, 3).map(function (a) {
+        return `<div class="tm-cand" >
+          <img class="tm-cand-face" src="assets/art/${a.photo}.png" alt="">
+          <div class="tm-cand-info"><b>${esc(a.name)}</b><span>${'\u2605'.repeat(a.tier)}</span>
+          <p>${esc(a.desc)}</p><p class="tm-adv-eff">${esc(a.traitDesc || '')}</p>
+          <span class="tm-cand-meta">签约 ${a.sign.toFixed(1)} 亿 · 月薪 ${a.salary.toFixed(2)} 亿</span></div>
+          <button class="btn btn-sm btn-primary" data-action="adv-appoint" data-id="${a.id}">聘用</button>
+        </div>`;
+      }).join('');
+      return `<div class="tm-slot">
+        <div class="tm-slot-head"><span>${A.SLOT_NAME[slot]}</span><span class="tm-slot-tag">${cur ? '在任' : '空缺'}</span></div>
+        ${body}
+        <div class="tm-cands">${list || '<div class="tm-adv-empty">暂无候选</div>'}</div>
+      </div>`;
+    }
+
+    const depts = S.DEPTS.map(function (d) {
+      const x = game.staff[d.id];
+      const pct = Math.max(4, Math.min(100, x.morale));
+      return `<div class="tm-dept">
+        <div class="tm-dept-top"><b>${d.name}</b><span>${x.head} 人 · 士气 ${Math.round(x.morale)}</span></div>
+        <div class="tm-bar"><i style="width:${pct}%"></i></div>
+        <div class="tm-dept-foot"><span>${d.role} · 月薪 ${(x.head * x.avg * 1e4 / 1e8).toFixed(2)} 亿</span>
+          <span class="tm-dept-btns">
+            <button class="btn btn-xs btn-secondary" data-action="staff-hire" data-dept="${d.id}">扩招</button>
+            <button class="btn btn-xs btn-secondary" data-action="staff-layoff" data-dept="${d.id}">裁员</button>
+            <button class="btn btn-xs btn-secondary" data-action="staff-train" data-dept="${d.id}">培训</button>
+          </span></div>
+      </div>`;
+    }).join('');
+
+    const t = S.total(game);
+    return `<div class="panel tm-panel">
+      <h3>${icon('spark')} 顾问团队</h3>
+      <div class="tm-slots">${A.SLOTS.map(slotCard).join('')}</div>
+    </div>
+`;
+  }
+
   function renderOverviewPage() {
     const c = game.company;
     const fin = currentFinancial();
@@ -1407,7 +2444,15 @@
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -1415,7 +2460,15 @@
           
           
           
+          
+          
+          
+          
             <h1 class="hero-title">${esc(c.name)}<span class="thin"> · 全球影像业务</span></h1>
+          
+          
+          
+          
           
           
           
@@ -1423,7 +2476,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -1431,7 +2492,15 @@
           
           
           
+          
+          
+          
+          
             <div class="hero-stats">
+          
+          
+          
+          
           
           
           
@@ -1439,7 +2508,15 @@
           
           
           
+          
+          
+          
+          
               <div class="hero-stat"><label>目标品类</label><b>${new Set(active.map(p => p.category)).size} / 10</b></div>
+          
+          
+          
+          
           
           
           
@@ -1447,7 +2524,15 @@
           
           
           
+          
+          
+          
+          
               <div class="hero-stat"><label>团队规模</label><b>${E.companyStaffCount(c)} 人</b></div>
+          
+          
+          
+          
           
           
           
@@ -1455,7 +2540,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -1463,7 +2556,15 @@
           
           
           
+          
+          
+          
+          
               <button class="btn btn-primary" data-action="new-camera">${icon('plus')} 设计新相机</button>
+          
+          
+          
+          
           
           
           
@@ -1471,11 +2572,23 @@
           
           
           
+          
+          
+          
+          
               <button class="btn btn-ghost" data-action="nav" data-page="products">查看产品线 ${icon('arrowRight')}</button>
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -1485,7 +2598,15 @@
           
           
           
+          
+          
+          
+          
           <div class="hero-visual-bg"></div>
+          
+          
+          
+          
           
           
           
@@ -1493,11 +2614,23 @@
           
           
           
+          
+          
+          
+          
           ${heroProduct && heroPhoto && (heroPhoto.substitute || heroPhoto.crossBrand) ? '<span class="real-photo-badge is-ref hero-photo-flag">实拍参考</span>' : ''}
           
           
           
+          
+          
+          
+          
           ${heroProduct ? heroSVG : `<div class="hero-empty">${icon('camera')}<b>还没有一台自己的相机</b><span>从传感器、按键到一块皮革，开始设计第一台真正属于你的产品。</span><button class="btn btn-sm btn-primary" data-action="new-camera">开始设计 ${icon('arrowRight')}</button></div>`}
+          
+          
+          
+          
           
           
           
@@ -1511,11 +2644,23 @@
           
           
           
+          
+          
+          
+          
           <div class="kpi-head"><span class="kpi-label">现金储备</span><span class="kpi-icon">${icon('wallet')}</span></div>
           
           
           
+          
+          
+          
+          
           <div class="kpi-value">${money(c.cash)}</div>
+          
+          
+          
+          
           
           
           
@@ -1525,11 +2670,23 @@
           
           
           
+          
+          
+          
+          
           <div class="kpi-head"><span class="kpi-label">上期净营收</span><span class="kpi-icon">${icon('receipt')}</span></div>
           
           
           
+          
+          
+          
+          
           <div class="kpi-value">${latestReport ? money(latestReport.revenueNet) : '—'}</div>
+          
+          
+          
+          
           
           
           
@@ -1539,11 +2696,23 @@
           
           
           
+          
+          
+          
+          
           <div class="kpi-head"><span class="kpi-label">上期相机销量</span><span class="kpi-icon">${icon('camera')}</span></div>
           
           
           
+          
+          
+          
+          
           <div class="kpi-value">${latestReport ? latestReport.cameraUnits.toLocaleString('zh-CN') : '—'}<small>台</small></div>
+          
+          
+          
+          
           
           
           
@@ -1553,11 +2722,23 @@
           
           
           
+          
+          
+          
+          
           <div class="kpi-head"><span class="kpi-label">全球销量份额</span><span class="kpi-icon">${icon('target')}</span></div>
           
           
           
+          
+          
+          
+          
           <div class="kpi-value">${fin.share.toFixed(1)}<small>%</small></div>
+          
+          
+          
+          
           
           
           
@@ -1569,11 +2750,23 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
           
           
           
+          
+          
+          
+          
             <div class="panel-header">
+          
+          
+          
+          
           
           
           
@@ -1581,11 +2774,23 @@
           
           
           
+          
+          
+          
+          
               <div class="panel-actions"><span class="badge">${E.monthLabel(game.monthIndex)}</span></div>
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -1593,7 +2798,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -1601,7 +2814,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-header">
+          
+          
+          
+          
           
           
           
@@ -1609,7 +2830,15 @@
           
           
           
+          
+          
+          
+          
               <div class="panel-actions"><button class="link-btn" data-action="nav" data-page="products">完整产品中心 →</button></div>
+          
+          
+          
+          
           
           
           
@@ -1617,7 +2846,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -1625,7 +2862,15 @@
           
           
           
+          
+          
+          
+          
                 ${active.slice(0, 3).map(p => `<button class="portfolio-mini" data-action="open-product" data-id="${attr(p.id)}">
+          
+          
+          
+          
           
           
           
@@ -1633,11 +2878,23 @@
           
           
           
+          
+          
+          
+          
                   <div class="portfolio-mini-info"><div class="portfolio-mini-name">${esc(p.name)}</div><div class="portfolio-mini-meta"><span>${esc(categoryData(p.category).short)}</span><b>${(p.lastUnits || 0).toLocaleString('zh-CN')} 台</b></div></div>
           
           
           
+          
+          
+          
+          
                 </button>`).join('')}
+          
+          
+          
+          
           
           
           
@@ -1645,7 +2902,15 @@
           
           
           
+          
+          
+          
+          
                   <div class="portfolio-mini-stage">${P.renderLens(p.design, c, { view: 'side', compact: true, idPrefix: 'mini' })}</div>
+          
+          
+          
+          
           
           
           
@@ -1653,7 +2918,15 @@
           
           
           
+          
+          
+          
+          
                 </button>`).join('')}
+          
+          
+          
+          
           
           
           
@@ -1661,7 +2934,15 @@
           
           
           
+          
+          
+          
+          
               </div>` : `<div class="empty-inline">暂无在售产品。<button class="link-btn" data-action="new-camera">立项第一台相机 →</button></div>`}
+          
+          
+          
+          
           
           
           
@@ -1669,7 +2950,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="metric-row"><label>平均媒体评分</label><b>${avgReview || '—'}</b></div>
+          
+          
+          
+          
           
           
           
@@ -1677,7 +2966,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="metric-row"><label>用户口碑</label><b>${c.reputation.toFixed(0)} / 100</b></div>
+          
+          
+          
+          
           
           
           
@@ -1685,7 +2982,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -1693,7 +2998,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -1701,7 +3014,15 @@
           
           
           
+          
+          
+          
+          
               <div><div class="panel-title">${icon('users')} 品牌与团队状态</div><div class="panel-sub">营销投入和研发进度是长期资产的复利。</div></div>
+          
+          
+          
+          
           
           
           
@@ -1709,7 +3030,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -1717,11 +3046,23 @@
           
           
           
+          
+          
+          
+          
               <div class="grid-2">
           
           
           
+          
+          
+          
+          
                 <div>
+          
+          
+          
+          
           
           
           
@@ -1729,7 +3070,15 @@
           
           
           
+          
+          
+          
+          
                   <div class="metric-row"><label>品牌认知</label><b>${c.awareness.toFixed(1)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -1737,7 +3086,15 @@
           
           
           
+          
+          
+          
+          
                   <div class="metric-row"><label>用户口碑</label><b>${c.reputation.toFixed(1)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -1745,7 +3102,15 @@
           
           
           
+          
+          
+          
+          
                 </div>
+          
+          
+          
+          
           
           
           
@@ -1753,7 +3118,15 @@
           
           
           
+          
+          
+          
+          
                   <div class="mini-label mb-8">研发管道</div>
+          
+          
+          
+          
           
           
           
@@ -1761,7 +3134,15 @@
           
           
           
+          
+          
+          
+          
                   <div class="metric-row"><label>研发力量</label><b>${Math.round(E.researchPower(c))} RP / 月</b></div>
+          
+          
+          
+          
           
           
           
@@ -1769,7 +3150,15 @@
           
           
           
+          
+          
+          
+          
               </div>
+          
+          
+          
+          
           
           
           
@@ -1777,7 +3166,15 @@
           
           
           
+          
+          
+          
+          
                 ${D.MILESTONES.slice(0, 4).map(m => {
+          
+          
+          
+          
           
           
           
@@ -1785,7 +3182,15 @@
           
           
           
+          
+          
+          
+          
                   const prog = E.milestoneProgress(game, m.id);
+          
+          
+          
+          
           
           
           
@@ -1793,7 +3198,15 @@
           
           
           
+          
+          
+          
+          
                 }).join('')}
+          
+          
+          
+          
           
           
           
@@ -1801,7 +3214,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -1811,11 +3232,23 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
           
           
           
+          
+          
+          
+          
             <div class="panel-header">
+          
+          
+          
+          
           
           
           
@@ -1823,11 +3256,23 @@
           
           
           
+          
+          
+          
+          
               <div class="panel-actions"><button class="link-btn" data-action="nav" data-page="market">详细市场 →</button></div>
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -1835,7 +3280,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-footer" style="border-top:1px solid var(--line)">
+          
+          
+          
+          
           
           
           
@@ -1843,7 +3296,15 @@
           
           
           
+          
+          
+          
+          
               <span class="faint" style="font-size:8px">上期销量 ${units(fin.cameraUnits)}</span>
+          
+          
+          
+          
           
           
           
@@ -1851,11 +3312,23 @@
           
           
           
+          
+          
+          
+          
           </div>
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -1863,7 +3336,15 @@
           
           
           
+          
+          
+          
+          
               <div><div class="panel-title">${icon('bell')} 行业动态</div><div class="panel-sub">竞品发布、市场趋势与公司新闻。</div></div>
+          
+          
+          
+          
           
           
           
@@ -1871,11 +3352,23 @@
           
           
           
+          
+          
+          
+          
             </div>
           
           
           
+          
+          
+          
+          
             <div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -1883,7 +3376,15 @@
           
           
           
+          
+          
+          
+          
                 ${topNews.map(n => `<div class="news-item">
+          
+          
+          
+          
           
           
           
@@ -1891,7 +3392,15 @@
           
           
           
+          
+          
+          
+          
                   <div class="news-body"><div class="news-title">${esc(n.title)}</div><div class="news-text">${esc(n.text)}</div><span class="news-tag">${esc(n.tag)}</span></div>
+          
+          
+          
+          
           
           
           
@@ -1899,11 +3408,23 @@
           
           
           
+          
+          
+          
+          
               </div>
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -1911,7 +3432,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -1919,7 +3448,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -1927,7 +3464,15 @@
           
           
           
+          
+          
+          
+          
                 ${active.length === 0 ? '<div class="tip"><span><b>先立项一台相机。</b>选择产品线、定义外形，再推向市场。</span></div>' : ''}
+          
+          
+          
+          
           
           
           
@@ -1935,7 +3480,15 @@
           
           
           
+          
+          
+          
+          
                 ${projects.length === 0 ? '<div class="tip"><span><b>研发实验室空闲。</b>技术等级限制参数上限，提前规划下一代产品。</span></div>' : ''}
+          
+          
+          
+          
           
           
           
@@ -1943,7 +3496,15 @@
           
           
           
+          
+          
+          
+          
                 ${reportStockout() ? '<div class="tip"><span><b>渠道缺货。</b>上期有产品损失需求，检查产能与备货。</span></div>' : ''}
+          
+          
+          
+          
           
           
           
@@ -1951,11 +3512,23 @@
           
           
           
+          
+          
+          
+          
               </div>
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -1988,11 +3561,23 @@
           
           
           
+          
+          
+          
+          
           <div class="product-metric"><label>上期销量</label><b>${(p.lastUnits || 0).toLocaleString('zh-CN')}</b></div>
           
           
           
+          
+          
+          
+          
           <div class="product-metric"><label>库存</label><b>${(p.stock || 0).toLocaleString('zh-CN')}</b></div>
+          
+          
+          
+          
           
           
           
@@ -2002,7 +3587,15 @@
           
           
           
+          
+          
+          
+          
           <span class="product-status">${p.status === 'active' ? '<span class="dot good"></span>在售' : '<span class="dot faint"></span>已停产'} · ${p.defectRate.toFixed(1)}% 故障率</span>
+          
+          
+          
+          
           
           
           
@@ -2028,11 +3621,23 @@
           
           
           
+          
+          
+          
+          
           <div class="product-metric"><label>上期销量</label><b>${(p.lastUnits || 0).toLocaleString('zh-CN')}</b></div>
           
           
           
+          
+          
+          
+          
           <div class="product-metric"><label>库存</label><b>${(p.stock || 0).toLocaleString('zh-CN')}</b></div>
+          
+          
+          
+          
           
           
           
@@ -2042,7 +3647,15 @@
           
           
           
+          
+          
+          
+          
           <span class="product-status">${p.mount.type} 卡口 · ${p.weight}g · ${p.defectRate.toFixed(1)}% 故障率</span>
+          
+          
+          
+          
           
           
           
@@ -2104,7 +3717,7 @@
     return `
       ${pageHead({
         eyebrow: 'PRODUCT PORTFOLIO / 产品矩阵',
-        title: '从一张图纸，到货架上的产品。',
+        title: '相机设计',
         sub: '管理在售相机、镜头与未完成设计。参数决定产品能力，外形与定价决定它是否被拿起。',
         actions: `<button class="btn btn-secondary" data-action="new-lens">${icon('lens')} 设计镜头</button><button class="btn btn-primary" data-action="new-camera">${icon('plus')} 设计新相机</button>`
       })}
@@ -2120,11 +3733,23 @@
           
           
           
+          
+          
+          
+          
           <button class="tab ${tab === 'cameras' ? 'is-active' : ''}" data-action="product-tab" data-tab="cameras">相机 <span class="tab-badge">${active.length}</span></button>
           
           
           
+          
+          
+          
+          
           <button class="tab ${tab === 'lenses' ? 'is-active' : ''}" data-action="product-tab" data-tab="lenses">镜头 <span class="tab-badge">${activeLs.length}</span></button>
+          
+          
+          
+          
           
           
           
@@ -2134,7 +3759,15 @@
           
           
           
+          
+          
+          
+          
           <button class="filter-chip ${UI.productFilter === 'all' ? 'is-active' : ''}" data-action="filter-products" data-filter="all">全部</button>
+          
+          
+          
+          
           
           
           
@@ -2177,7 +3810,7 @@
     return `
       ${pageHead({
         eyebrow: 'DESIGN STUDIO / 工业设计中心',
-        title: '相机不只是参数，它是一种被拿在手里的态度。',
+        title: '设计所',
         sub: '在 FRAME 的设计工作台上，尺寸、轮廓、按键、材质、色彩与卡口全部实时联动。你的每一个选择都会被用户看到，也会被市场打分。',
         actions: `<button class="btn btn-secondary" data-action="new-lens">${icon('lens')} 新镜头</button><button class="btn btn-primary" data-action="new-camera">${icon('plus')} 新相机</button>`
       })}
@@ -2186,7 +3819,15 @@
           
           
           
+          
+          
+          
+          
           <div class="eyebrow">DESIGN IS THE PRODUCT</div>
+          
+          
+          
+          
           
           
           
@@ -2194,7 +3835,15 @@
           
           
           
+          
+          
+          
+          
           <p>参数可以在发布会上被念出来，但外形会在第一眼被感受到。我们提供一台真正的工业设计工具：不只是换颜色，而是决定机身的每一毫米、每一道倒角、每一个手指天然会停下的位置。</p>
+          
+          
+          
+          
           
           
           
@@ -2202,7 +3851,15 @@
           
           
           
+          
+          
+          
+          
             <button class="btn btn-primary btn-lg" data-action="${dCam ? 'resume-camera-draft' : 'new-camera'}">${icon('design')} ${dCam ? '继续相机草稿' : '进入相机工作台'}</button>
+          
+          
+          
+          
           
           
           
@@ -2210,7 +3867,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -2218,7 +3883,15 @@
           
           
           
+          
+          
+          
+          
             <div><div class="mini-label">设计中的项目</div><div style="font-family:var(--font-mono);font-size:12px;color:var(--text-soft);margin-top:3px">${(dCam ? 1 : 0) + (dLens ? 1 : 0)}</div></div>
+          
+          
+          
+          
           
           
           
@@ -2226,13 +3899,25 @@
           
           
           
+          
+          
+          
+          
             <div><div class="mini-label">最近设计</div><div style="font-family:var(--font-mono);font-size:12px;color:var(--text-soft);margin-top:3px">${latest ? escapeText(latest.name) : '—'}</div></div>
+          
+          
+          
+          
           
           
           
           </div>
         </div>
         <div class="design-hub-stage">
+          
+          
+          
+          
           
           
           
@@ -2252,7 +3937,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel-header"><div><div class="panel-title">${icon('eye')} 参考外形基准</div><div class="panel-sub">${esc(profile.notes || '现实机型的结构比例')}</div></div><button class="btn btn-sm btn-secondary" data-action="nav" data-page="gallery">打开参考图库 ${icon('arrowRight')}</button></div>
+          
+          
+          
+          
           
           
           
@@ -2260,7 +3953,15 @@
           
           
           
+          
+          
+          
+          
             <div class="art-hub-refs">
+          
+          
+          
+          
           
           
           
@@ -2268,7 +3969,15 @@
           
           
           
+          
+          
+          
+          
                 const ph = photoForRefModel(m);
+          
+          
+          
+          
           
           
           
@@ -2276,7 +3985,15 @@
           
           
           
+          
+          
+          
+          
                   ? `<img src="${attr(PHOTO.url(ph.item))}" alt="${attr(m.name)} 实拍参考" loading="lazy">`
+          
+          
+          
+          
           
           
           
@@ -2284,7 +4001,15 @@
           
           
           
+          
+          
+          
+          
               }).join('')}
+          
+          
+          
+          
           
           
           
@@ -2292,7 +4017,15 @@
           
           
           
+          
+          
+          
+          
             <div class="art-hub-note">${icon('info')} 点击任一机型作为新设计的外形基准。所有产品图都由本机 3D 几何重新渲染，比例、握柄、卡口与取景器结构会按真实工业常识约束。</div>
+          
+          
+          
+          
           
           
           
@@ -2305,7 +4038,15 @@
           
           
           
+          
+          
+          
+          
           <div class="design-principles">
+          
+          
+          
+          
           
           
           
@@ -2313,7 +4054,15 @@
           
           
           
+          
+          
+          
+          
             <div class="principle"><div class="idx">02</div><h4>材料与表面</h4><p>金属、皮革、碳纤维与不同表面处理，影响重量、散热、质感和定价能力。</p></div>
+          
+          
+          
+          
           
           
           
@@ -2321,11 +4070,23 @@
           
           
           
+          
+          
+          
+          
             <div class="principle"><div class="idx">04</div><h4>操控与结构</h4><p>按键数量、位置、拨轮、翻转屏、取景器、卡口和配件，决定它是否真的像一台相机。</p></div>
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -2338,11 +4099,23 @@
           
           
           
+          
+          
+          
+          
           <div class="grid-3">
           
           
           
-            <div class="swatch-line"><span class="swatch-large" style="background:${attr(game.company.design?.mainColor || '#222')}"></span><div class="swatch-meta"><b>机身主色</b><span>${esc(game.company.design?.mainColor || '#222222')}</span></div></div>
+          
+          
+          
+          
+            <div class="swatch-line"><span class="swatch-large" style="background:${attr(game.company.design?.mainColor || '#222')}"></span><div class="swatch-meta"><b>品牌主色</b><span>${esc(game.company.design?.mainColor || '#222222')}</span></div></div>
+          
+          
+          
+          
           
           
           
@@ -2350,7 +4123,15 @@
           
           
           
+          
+          
+          
+          
             <div class="swatch-line"><span class="swatch-large" style="background:${attr(game.company.design?.topColor || '#b7b5ac')}"></span><div class="swatch-meta"><b>顶盖参考</b><span>${esc(game.company.design?.topColor || '#b7b5ac')}</span></div></div>
+          
+          
+          
+          
           
           
           
@@ -2395,7 +4176,15 @@
           
           
           
+          
+          
+          
+          
           <div><div class="eyebrow">${esc(eyebrow || 'FRAME')}</div><div class="modal-title">${esc(title)}</div>${sub ? `<div class="modal-sub">${sub}</div>` : ''}</div>
+          
+          
+          
+          
           
           
           
@@ -2623,7 +4412,15 @@
           
           
           
+          
+          
+          
+          
           if (!draftLens) return;
+          
+          
+          
+          
           
           
           
@@ -2632,7 +4429,15 @@
           
           
           
+          
+          
+          
+          
           if (!draftCam) return;
+          
+          
+          
+          
           
           
           
@@ -2640,7 +4445,15 @@
           
           
           
+          
+          
+          
+          
           ART3D.paint(cv, draftCam, game.company, Object.assign({}, view, {
+          
+          
+          
+          
           
           
           
@@ -2648,11 +4461,23 @@
           
           
           
+          
+          
+          
+          
             adherence: (game.art && game.art.adherence) || 0.7,
           
           
           
+          
+          
+          
+          
             ss: lowRes ? 0.72 : 1
+          
+          
+          
+          
           
           
           
@@ -2817,11 +4642,23 @@
           
           
           
+          
+          
+          
+          
           view: 'hero',
           
           
           
+          
+          
+          
+          
           kitLens: opts && opts.kitLens,
+          
+          
+          
+          
           
           
           
@@ -2914,7 +4751,15 @@
           
           
           
+          
+          
+          
+          
           const sig = ART.analyzeImage(img);
+          
+          
+          
+          
           
           
           
@@ -2997,7 +4842,15 @@
           
           
           
+          
+          
+          
+          
           ? `<button class="btn btn-secondary" data-action="art-gallery-reset">${icon('refresh')} 重置筛选</button><button class="btn btn-primary" data-action="photo-random">${icon('sparkles')} 随机挑一台参考</button>`
+          
+          
+          
+          
           
           
           
@@ -3008,7 +4861,15 @@
           
           
           
+          
+          
+          
+          
           <div class="art-console-stat"><label>实拍照片</label><b>${PHOTO ? PHOTO.items.length : 0}</b><span>台真实机身照片</span></div>
+          
+          
+          
+          
           
           
           
@@ -3016,7 +4877,15 @@
           
           
           
+          
+          
+          
+          
           <div class="art-console-stat"><label>照片品类</label><b>${photoCats.length}</b><span>微单 / 卡片 / 运动 / 电影机 / 其他</span></div>
+          
+          
+          
+          
           
           
           
@@ -3026,7 +4895,15 @@
           
           
           
+          
+          
+          
+          
           <button class="btn btn-sm ${onlineOn ? 'btn-secondary' : 'btn-ghost'}" data-action="art-toggle-online">${icon(onlineOn ? 'globe' : 'lock')} ${onlineOn ? '联网补充已开启' : '联网补充已关闭'}</button>
+          
+          
+          
+          
           
           
           
@@ -3042,7 +4919,15 @@
           
           
           
+          
+          
+          
+          
           <button class="filter-chip ${brandFilter === 'all' ? 'is-active' : ''}" data-action="art-gallery-brand" data-brand="all">全部品牌</button>
+          
+          
+          
+          
           
           
           
@@ -3052,7 +4937,15 @@
           
           
           
+          
+          
+          
+          
           <button class="filter-chip ${catFilter === 'all' ? 'is-active' : ''}" data-action="art-gallery-cat" data-cat="all">全部品类</button>
+          
+          
+          
+          
           
           
           
@@ -3061,7 +4954,15 @@
           
           
           
+          
+          
+          
+          
           <button class="filter-chip ${catFilter === 'all' ? 'is-active' : ''}" data-action="art-gallery-cat" data-cat="all">全部品类</button>
+          
+          
+          
+          
           
           
           
@@ -3073,7 +4974,15 @@
           
           
           
+          
+          
+          
+          
           ? (photos.length ? photos.map(p => photoCard(p)).join('') : '<div class="empty-inline">当前筛选没有照片。</div>')
+          
+          
+          
+          
           
           
           
@@ -3081,7 +4990,15 @@
           
           
           
+          
+          
+          
+          
             ? (models.length ? models.map(m => referenceCard(m)).join('') : '<div class="empty-inline">当前筛选没有参考机型。</div>')
+          
+          
+          
+          
           
           
           
@@ -3107,7 +5024,15 @@
           
           
           
+          
+          
+          
+          
           <button class="btn btn-sm btn-ghost" data-action="photo-open" data-photo="${attr(item.id)}">查看照片</button>
+          
+          
+          
+          
           
           
           
@@ -3131,7 +5056,15 @@
           
           
           
+          
+          
+          
+          
           <div class="ref-detail-stage is-photo-detail">
+          
+          
+          
+          
           
           
           
@@ -3139,7 +5072,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -3147,7 +5088,15 @@
           
           
           
+          
+          
+          
+          
           <div class="flex gap-8 mt-12">
+          
+          
+          
+          
           
           
           
@@ -3155,11 +5104,23 @@
           
           
           
+          
+          
+          
+          
             <button class="btn btn-secondary" data-action="photo-download" data-photo="${attr(item.id)}">${icon('download')} 下载照片</button>
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -3169,7 +5130,15 @@
           
           
           
+          
+          
+          
+          
           <div class="modal-section-title">照片信息</div>
+          
+          
+          
+          
           
           
           
@@ -3177,7 +5146,15 @@
           
           
           
+          
+          
+          
+          
             <div class="detail-spec-row"><label>品牌</label><b>${esc(item.brand)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -3185,7 +5162,15 @@
           
           
           
+          
+          
+          
+          
             <div class="detail-spec-row"><label>发布日期</label><b>${esc(item.date)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -3193,7 +5178,15 @@
           
           
           
+          
+          
+          
+          
             <div class="detail-spec-row"><label>原始分辨率</label><b>${item.w} × ${item.h}</b></div>
+          
+          
+          
+          
           
           
           
@@ -3201,7 +5194,15 @@
           
           
           
+          
+          
+          
+          
             <div class="detail-spec-row"><label>授权</label><b>${esc(item.license || '—')}</b></div>
+          
+          
+          
+          
           
           
           
@@ -3209,7 +5210,15 @@
           
           
           
+          
+          
+          
+          
             <div class="detail-spec-row"><label>结构库匹配</label><b>${struct ? esc(struct.name) : '未收录'}</b></div>
+          
+          
+          
+          
           
           
           
@@ -3217,7 +5226,15 @@
           
           
           
+          
+          
+          
+          
           <div class="modal-section-title mt-16">使用说明</div>
+          
+          
+          
+          
           
           
           
@@ -3238,7 +5255,15 @@
           
           
           
+          
+          
+          
+          
           ? `<img class="ref-photo is-loaded fit-${ph.item.fit || (ph.item.clean ? 'contain' : 'cover')}" style="background:${attr(ph.item.bg || '#fff')}" src="${attr(PHOTO.url(ph.item))}" alt="${attr(m.name)} 实拍参考" loading="lazy" decoding="async"><span class="ref-photo-flag">${ph.substitute || ph.crossBrand ? '实拍参考' : '实拍'}</span>`
+          
+          
+          
+          
           
           
           
@@ -3254,7 +5279,15 @@
           
           
           
+          
+          
+          
+          
           <button class="btn btn-sm btn-ghost" data-action="art-use-model" data-model="${attr(m.id)}">设为外形基准</button>
+          
+          
+          
+          
           
           
           
@@ -3371,7 +5404,15 @@
           
           
           
+          
+          
+          
+          
           <div class="ref-detail-stage">
+          
+          
+          
+          
           
           
           
@@ -3379,11 +5420,23 @@
           
           
           
+          
+          
+          
+          
             ${hasPhoto ? `<span class="ref-photo-credit">${esc(rec.license || 'Wikimedia Commons')} · ${esc(rec.artist || '未知作者')}</span>` : `<span class="ref-photo-credit is-empty">尚未缓存实拍图 · 使用内置结构轮廓</span>`}
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -3391,7 +5444,15 @@
           
           
           
+          
+          
+          
+          
           <div class="flex gap-8 mt-12">
+          
+          
+          
+          
           
           
           
@@ -3399,11 +5460,23 @@
           
           
           
+          
+          
+          
+          
             ${hasPhoto ? `<button class="btn btn-secondary" data-action="art-refresh-photo" data-model="${attr(item.id)}">${icon('refresh')} 重新抓取</button>` : `<button class="btn btn-secondary" data-action="art-fetch-photo" data-model="${attr(item.id)}">${icon('globe')} 抓取实拍参考</button>`}
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -3413,7 +5486,15 @@
           
           
           
+          
+          
+          
+          
           <div class="modal-section-title">结构数据</div>
+          
+          
+          
+          
           
           
           
@@ -3421,7 +5502,15 @@
           
           
           
+          
+          
+          
+          
           ${!isLens ? `<div class="modal-section-title mt-16">设计语言</div><p class="muted" style="font-size:10px;line-height:1.7">${esc(item.note || brand.notes || '')}</p>` : ''}
+          
+          
+          
+          
           
           
           
@@ -3429,11 +5518,23 @@
           
           
           
+          
+          
+          
+          
           <div class="detail-spec-row"><label>实拍缩略图</label><b>${hasPhoto ? '已缓存 · ' + Math.round((rec.blob.size || 0) / 1024) + ' KB' : '未缓存'}</b></div>
           
           
           
+          
+          
+          
+          
           ${refSignatures.has(item.id) ? `<div class="detail-spec-row"><label>实拍轮廓解析</label><b>宽高比 ${refSignatures.get(item.id).aspect.toFixed(2)} · 顶部隆起 ${Math.round(refSignatures.get(item.id).hump * 100)}% · 握柄${refSignatures.get(item.id).gripSide === 'left' ? '左' : '右'}侧</b></div>` : ''}
+          
+          
+          
+          
           
           
           
@@ -3472,7 +5573,15 @@
           
           
           
+          
+          
+          
+          
           <div class="view-switcher">
+          
+          
+          
+          
           
           
           
@@ -3480,7 +5589,15 @@
           
           
           
+          
+          
+          
+          
             <button class="view-btn ${mode === 'render' ? 'is-active' : ''}" data-action="preview-mode" data-mode="render" title="3D 结构示意">3D</button>
+          
+          
+          
+          
           
           
           
@@ -3488,7 +5605,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -3496,7 +5621,15 @@
           
           
           
+          
+          
+          
+          
             <button class="mini-toggle angle-cycle" data-action="art-angle-cycle" title="切换视角：${(angles.find(([v]) => v === UI.artPhotoView) || ['hero', '3/4'])[1]}">${(angles.find(([v]) => v === UI.artPhotoView) || ['hero', '3/4'])[1]}</button>
+          
+          
+          
+          
           
           
           
@@ -3504,7 +5637,15 @@
           
           
           
+          
+          
+          
+          
           ` : ''}
+          
+          
+          
+          
           
           
           
@@ -3512,7 +5653,15 @@
           
           
           
+          
+          
+          
+          
             <div class="view-switcher">
+          
+          
+          
+          
           
           
           
@@ -3520,7 +5669,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -3528,11 +5685,23 @@
           
           
           
+          
+          
+          
+          
             <button class="mini-toggle ${UI.previewWire ? 'is-active' : ''}" data-action="toggle-wireframe" title="线稿模式">${icon('pen')}</button>
           
           
           
+          
+          
+          
+          
           ` : ''}
+          
+          
+          
+          
           
           
           
@@ -3545,7 +5714,15 @@
           
           
           
+          
+          
+          
+          
           ? `${photoImg(photo, 'is-preview', draft.name)}${photoBadge(photo)}<span class="stage-camera-label">REAL PHOTO · ${photo ? esc(photo.item.model) : 'NO MATCH'}</span>`
+          
+          
+          
+          
           
           
           
@@ -3553,7 +5730,15 @@
           
           
           
+          
+          
+          
+          
             ? `<canvas class="art-ghost" data-art-ghost></canvas><canvas class="art-canvas" data-art-live="camera"></canvas><span class="stage-camera-label">3D STUDY · 仅结构示意</span>`
+          
+          
+          
+          
           
           
           
@@ -3566,7 +5751,15 @@
           
           
           
+          
+          
+          
+          
           <div><div class="preview-info-name">${esc(draft.name || '未命名相机')}</div><div class="preview-info-sub">${esc(categoryData(draft.category).name)} · ${esc(matchSeg.name)} · ${esc(D.SENSOR_FORMATS[draft.sensor.format].name)}</div></div>
+          
+          
+          
+          
           
           
           
@@ -3578,11 +5771,23 @@
           
           
           
+          
+          
+          
+          
           <button class="btn btn-xs btn-ghost" data-action="photo-export-design">${icon('download')} 下载实拍参考图</button>
           
           
           
+          
+          
+          
+          
           <span class="art-render-meta">照片来自本机照片库 · 参数配色以左侧为准</span>
+          
+          
+          
+          
           
           
           
@@ -3592,11 +5797,23 @@
           
           
           
+          
+          
+          
+          
           <button class="btn btn-xs btn-ghost" data-action="art-repair">${icon('wrench')} 一键校正比例</button>
           
           
           
+          
+          
+          
+          
           <span class="art-render-meta">参考 ${artSpec.refs.length} 台 · ${Math.round(artSpec.W)}×${Math.round(artSpec.H)}×${Math.round(artSpec.D)}mm</span>
+          
+          
+          
+          
           
           
           
@@ -3614,7 +5831,15 @@
           
           
           
+          
+          
+          
+          
           <div class="donut">
+          
+          
+          
+          
           
           
           
@@ -3622,7 +5847,15 @@
           
           
           
+          
+          
+          
+          
               <circle cx="31" cy="31" r="25" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4"/>
+          
+          
+          
+          
           
           
           
@@ -3630,7 +5863,15 @@
           
           
           
+          
+          
+          
+          
             </svg>
+          
+          
+          
+          
           
           
           
@@ -3638,7 +5879,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -3648,7 +5897,15 @@
           
           
           
+          
+          
+          
+          
           <div style="text-align:right"><div class="mini-label">受众匹配</div><div class="match-value">${ev.targetMatch}<small style="font-size:9px;color:var(--faint)">%</small></div><div class="match-label">${esc(matchSeg.name)}</div></div>
+          
+          
+          
+          
           
           
           
@@ -3656,7 +5913,15 @@
           
           
           
+          
+          
+          
+          
             <svg width="52" height="52" viewBox="0 0 52 52"><circle cx="26" cy="26" r="21" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="3.5"/><circle cx="26" cy="26" r="21" fill="none" stroke="var(--good)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${(ev.targetMatch / 100) * 132} 132"/></svg>
+          
+          
+          
+          
           
           
           
@@ -3710,7 +5975,15 @@
           
           
           
+          
+          
+          
+          
           <button class="studio-back" data-action="nav" data-page="design">${icon('arrowLeft')} 设计工作室</button>
+          
+          
+          
+          
           
           
           
@@ -3718,7 +5991,15 @@
           
           
           
+          
+          
+          
+          
             <input class="studio-title-input" value="${attr(draft.name)}" data-path="name" data-scope="camera" maxlength="32" aria-label="相机名称">
+          
+          
+          
+          
           
           
           
@@ -3726,11 +6007,23 @@
           
           
           
+          
+          
+          
+          
             <span class="badge">${esc(segmentData(draft.targetSegment).name)}</span>
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -3740,11 +6033,23 @@
           
           
           
+          
+          
+          
+          
           <button class="btn btn-ghost btn-sm" data-action="save-draft">${icon('save')} 保存草稿</button>
           
           
           
+          
+          
+          
+          
           <button class="btn btn-ghost btn-sm" data-action="discard-camera-draft">${icon('trash')} 放弃</button>
+          
+          
+          
+          
           
           
           
@@ -3756,6 +6061,10 @@
           
           
           
+          
+          
+          
+          
           ${CAMERA_STEPS.map(s => `<button class="studio-tab ${step === s.id ? 'is-active' : ''} ${step > s.id ? 'is-done' : ''}" data-action="studio-step" data-step="${s.id}"><span class="step-num">${String(s.id).padStart(2, '0')}</span>${s.short}</button>`).join('')}
         </div>
       </div>
@@ -3764,7 +6073,15 @@
           
           
           
+          
+          
+          
+          
           <div class="studio-step">
+          
+          
+          
+          
           
           
           
@@ -3772,7 +6089,15 @@
           
           
           
+          
+          
+          
+          
               <div><div class="studio-step-eyebrow">STEP ${String(step).padStart(2, '0')} / ${stepMeta.label}</div><h2 class="studio-step-title">${esc(stepTitle(step))}</h2><p class="studio-step-desc">${stepDesc(step)}</p></div>
+          
+          
+          
+          
           
           
           
@@ -3780,7 +6105,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -3788,7 +6121,15 @@
           
           
           
+          
+          
+          
+          
             <div class="studio-step-footer">
+          
+          
+          
+          
           
           
           
@@ -3796,7 +6137,15 @@
           
           
           
+          
+          
+          
+          
               <div class="studio-footer-actions">
+          
+          
+          
+          
           
           
           
@@ -3804,7 +6153,15 @@
           
           
           
+          
+          
+          
+          
                 <button class="btn btn-sm btn-secondary" data-action="save-draft">保存</button>
+          
+          
+          
+          
           
           
           
@@ -3812,11 +6169,23 @@
           
           
           
+          
+          
+          
+          
               </div>
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -3861,11 +6230,23 @@
           
           
           
+          
+          
+          
+          
           ${D.CATEGORY_ORDER.map(id => { const c = D.CATEGORIES[id]; return `<button class="category-card-mini ${draft.category === id ? 'is-active' : ''}" data-action="set-camera-category" data-category="${id}">
           
           
           
+          
+          
+          
+          
             <div class="category-code">${esc(c.code)}</div><b>${esc(c.name)}</b><span>${esc(c.sizeLabel)}</span>
+          
+          
+          
+          
           
           
           
@@ -3878,6 +6259,10 @@
           
           
           
+          
+          
+          
+          
           ${D.SEGMENTS_ARRAY.map(s => optionCard({ name: esc(s.name), desc: esc(s.desc), meta: `<span>${esc(s.en)}</span>`, active: draft.targetSegment === s.id, action: 'set-choice', path: 'targetSegment', value: s.id, iconHTML: icon(SEGMENT_ICONS[s.id] || 'users') })).join('')}
         </div>
       </div>
@@ -3887,7 +6272,15 @@
           
           
           
+          
+          
+          
+          
           ${CAMERA_TEMPLATES.map(t => `<button class="template-btn" data-action="apply-template" data-template="${t.id}"><b>${esc(t.name)}</b><span>${esc(t.desc)}</span></button>`).join('')}
+          
+          
+          
+          
           
           
           
@@ -3900,11 +6293,23 @@
           
           
           
+          
+          
+          
+          
           ${['sensor', 'video', 'af', 'optics', 'cooling', 'material'].map(k => `<span>${esc(D.TECHS[k].name)} Lv.${game.company.tech[k]}</span>`).join('')}
           
           
           
+          
+          
+          
+          
           <span>设计团队 ${game.company.staff.designers} 人</span>
+          
+          
+          
+          
           
           
           
@@ -3918,7 +6323,15 @@
           
           
           
+          
+          
+          
+          
           <div class="form-field"><label>产品名称</label><input class="text-input" data-path="name" data-scope="camera" maxlength="32" value="${attr(draft.name)}"></div>
+          
+          
+          
+          
           
           
           
@@ -3935,6 +6348,10 @@
           
           
           
+          
+          
+          
+          
           ${Object.values(D.BODY_TYPES).map(b => optionCard({ bodyIcon: b.id, name: esc(b.name), desc: esc(b.desc), meta: `<span>${esc(b.en)}</span>`, active: draft.body.type === b.id, action: 'set-body-type', value: b.id })).join('')}
         </div>
       </div>
@@ -3944,7 +6361,15 @@
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -3952,7 +6377,15 @@
           
           
           
+          
+          
+          
+          
             <div class="option-grid cols-2">
+          
+          
+          
+          
           
           
           
@@ -3960,7 +6393,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -3968,7 +6409,15 @@
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -3976,7 +6425,15 @@
           
           
           
+          
+          
+          
+          
             <div class="option-grid cols-2">
+          
+          
+          
+          
           
           
           
@@ -3984,7 +6441,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -3995,64 +6460,11 @@
           
           
           
+          
+          
+          
+          
           ${Object.values(D.FRONT_STYLES).map(s => optionCard({ name: esc(s.name), desc: esc(s.desc), active: draft.body.front === s.id, action: 'set-choice', path: 'body.front', value: s.id })).join('')}
-        </div>
-      </div>
-      <div class="studio-section">
-        <div class="studio-section-head"><div><div class="studio-section-title"><span class="idx">03</span> 尺寸与比例</div><div class="studio-section-desc">直接改变机体体积、重量、便携性与内部堆叠空间。不要只看数字，留意右侧实时外形与重量。</div></div><span class="studio-section-hint">${Math.round(ev.W)} × ${Math.round(ev.H)} × ${Math.round(ev.Dp)} mm · ${Math.round(ev.cameraWeight)}g</span></div>
-        <div class="size-silhouette-frame mb-16">
-          
-          
-          
-          <div class="size-silhouette">${P.bodyIcon(draft.body.type)}</div>
-          
-          
-          
-          <div class="size-notes"><b>${esc(D.BODY_TYPES[draft.body.type].name)} · ${esc(D.SILHOUETTES[draft.body.silhouette].name)} · ${esc(D.TOP_STYLES[draft.body.top].name)}</b><br>体积约 ${(ev.volumeL).toFixed(2)} L。${ev.H < 70 ? '机身较矮，内部堆叠与散热空间有限。' : ev.H > 125 ? '高机身提供更强专业感，也牺牲便携。' : '比例处于常规范围。'} ${ev.cameraWeight > 1400 ? '整机偏重，长时间手持会累。' : ''}</div>
-        </div>
-        <div class="range-cluster">
-          
-          
-          
-          ${rangeField('body.width', '机身宽度', Math.round(draft.body.width), 50, 230, 1, 'mm', '横向比例与握持宽度')}
-          
-          
-          
-          ${rangeField('body.height', '机身高度', Math.round(draft.body.height), 35, 210, 1, 'mm', '影响手柄、屏幕和内部堆叠')}
-          
-          
-          
-          ${rangeField('body.depth', '机身厚度', Math.round(draft.body.depth), 25, 160, 1, 'mm', '厚度与镜头卡口法兰距相关')}
-          
-          
-          
-          ${rangeField('body.roundness', '轮廓倒角', Math.round(draft.body.roundness), 0, 100, 1, '%', '更圆润或更硬朗的视觉语言')}
-          
-          
-          
-          ${rangeField('body.gripH', '握柄高度', Math.round(draft.body.gripH), 0, 105, 1, 'mm', '握柄太低会让长镜头难以稳定')}
-          
-          
-          
-          ${rangeField('body.gripD', '握柄深度', Math.round(draft.body.gripD), 0, 100, 1, 'mm', '手指包覆感的主要来源')}
-          
-          
-          
-          ${rangeField('body.gripCurve', '握柄弧度', Math.round(draft.body.gripCurve), 0, 100, 1, '%', '弧形更贴合手掌，硬朗更工业')}
-          
-          
-          
-          ${rangeField('body.finishGloss', '表面光泽度', Math.round(draft.body.finishGloss || 0), 0, 100, 1, '%', '从哑光到高光，影响质感与耐指纹性')}
-        </div>
-        <div class="flex items-center justify-between mt-16">
-          
-          
-          
-          <div class="toggle-row" style="flex:1"><div><div class="toggle-label">全天候密封结构</div><div class="toggle-desc">增加 38g 重量与 ¥120 成本，提升专业与体育场景可靠性。</div></div><button class="toggle ${draft.body.weatherSealed ? 'is-on' : ''}" data-action="flip-path" data-path="body.weatherSealed"></button></div>
-          
-          
-          
-          <span class="badge ${draft.body.weatherSealed ? 'good' : ''}">${draft.body.weatherSealed ? 'WEATHER SEALED' : 'NO SEALING'}</span>
         </div>
       </div>
       <div class="studio-section">
@@ -4061,7 +6473,15 @@
           
           
           
-          <div class="callout"><div class="callout-title">${icon('info')} 人体工学提示</div>${ev.traits.handling >= 75 ? '当前握持分数不错。' : '握柄高度/深度偏低，专业用户可能会觉得镜头重心难以控制。'} 前部造型和机身宽度会改变手指落点。</div>
+          
+          
+          
+          
+          
+          
+          
+          
+          
           
           
           
@@ -4078,12 +6498,20 @@
           
           
           
+          
+          
+          
+          
           ${Object.values(D.MATERIALS).map(m => optionCard({ name: esc(m.name), desc: esc(m.desc), active: draft.materials.body === m.id, action: 'set-choice', path: 'materials.body', value: m.id, meta: `<span>密度 ${m.density}</span><span>质感 +${Math.round(m.premium * 100)}</span>`, iconHTML: `<span class="mini-swatch" style="background:${m.id === 'plastic' ? '#474b46' : m.id === 'leather' || m.id === 'skin' ? '#6e513b' : m.id === 'brass' ? '#b28a4c' : m.id === 'titanium' ? '#92928a' : m.id === 'carbon' ? '#2b2e2c' : '#a7a69b'}"></span>` })).join('')}
         </div>
       </div>
       <div class="studio-section">
         <div class="studio-section-head"><div><div class="studio-section-title"><span class="idx">02</span> 表面工艺</div><div class="studio-section-desc">同样的材料，用不同的表面处理会讲出完全不同的故事。</div></div><span class="studio-section-hint">材质：${esc(D.MATERIALS[draft.materials.body].name)}</span></div>
         <div class="option-grid cols-4">
+          
+          
+          
+          
           
           
           
@@ -4096,7 +6524,15 @@
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -4104,7 +6540,15 @@
           
           
           
+          
+          
+          
+          
             <div class="option-grid cols-2">
+          
+          
+          
+          
           
           
           
@@ -4112,11 +6556,23 @@
           
           
           
+          
+          
+          
+          
             </div>
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -4124,7 +6580,15 @@
           
           
           
+          
+          
+          
+          
             <div class="mini-label mb-8">顶盖材质</div>
+          
+          
+          
+          
           
           
           
@@ -4132,7 +6596,15 @@
           
           
           
+          
+          
+          
+          
               ${Object.values(D.TOP_PLATES).map(t => optionCard({ name: esc(t.name), desc: esc(t.desc), active: draft.materials.topPlate === t.id, action: 'set-choice', path: 'materials.topPlate', value: t.id })).join('')}
+          
+          
+          
+          
           
           
           
@@ -4140,58 +6612,11 @@
           
           
           
+          
+          
+          
+          
           </div>
-        </div>
-      </div>
-      <div class="studio-section">
-        <div class="studio-section-head"><div><div class="studio-section-title"><span class="idx">04</span> 颜色与双色设计</div><div class="studio-section-desc">颜色不是贴图，它会改变审美、目标受众和品牌识别。双色机身在视觉上更复杂，但也更有个性。</div></div></div>
-        <div class="grid-2 mb-16">
-          
-          
-          
-          <div class="swatch-line"><span class="swatch-large" style="background:${attr(draft.colors.main)}"></span><div class="swatch-meta"><b>主色</b><span>${attr(draft.colors.main)}</span></div></div>
-          
-          
-          
-          <div class="swatch-line"><span class="swatch-large" style="background:${attr(draft.colors.accent)}"></span><div class="swatch-meta"><b>强调色</b><span>${attr(draft.colors.accent)}</span></div></div>
-        </div>
-        ${colorRow('机身主色', 'colors.main', draft.colors.main, D.COLORS, false)}
-        ${colorRow('副色 / 顶盖', 'colors.secondary', draft.colors.secondary, D.COLORS, true)}
-        <div class="flex items-center justify-between mt-12 mb-12">
-          
-          
-          
-          <div class="toggle-row" style="flex:1"><div><div class="toggle-label">启用双色机身</div><div class="toggle-desc">允许顶盖、握柄或面板使用独立颜色。搭配不协调会降低外观分。</div></div><button class="toggle ${draft.colors.secondaryOn ? 'is-on' : ''}" data-action="flip-path" data-path="colors.secondaryOn"></button></div>
-          
-          
-          
-          <span class="badge ${draft.colors.secondaryOn ? 'accent' : ''}">${draft.colors.secondaryOn ? 'TWO-TONE' : 'MONOCHROME'}</span>
-        </div>
-        ${draft.colors.secondaryOn ? `<div class="grid-2">${colorRow('握柄颜色', 'colors.grip', draft.colors.grip, D.COLORS, true)}${colorRow('顶盖颜色', 'colors.top', draft.colors.top, D.COLORS, true)}</div>` : ''}
-        <div class="form-grid cols-3 mt-8">
-          
-          
-          
-          ${colorRow('铭牌颜色', 'colors.nameplate', draft.colors.nameplate, D.COLORS, true)}
-          
-          
-          
-          ${colorRow('按键颜色', 'colors.button', draft.colors.button, D.COLORS, true)}
-          
-          
-          
-          ${colorRow('拨轮颜色', 'colors.dial', draft.colors.dial, D.COLORS, true)}
-        </div>
-        ${colorRow('品牌饰线颜色', 'colors.accent', draft.colors.accent, D.COLORS, true)}
-        <div class="flex items-center justify-between mt-8">
-          
-          
-          
-          <div class="toggle-row" style="flex:1"><div><div class="toggle-label">显示品牌饰线</div><div class="toggle-desc">一条细线有时比一个 logo 更有识别度。</div></div><button class="toggle ${draft.colors.accentLine ? 'is-on' : ''}" data-action="flip-path" data-path="colors.accentLine"></button></div>
-          
-          
-          
-          <div class="toggle-row" style="flex:1;margin-left:18px"><div><div class="toggle-label">机身铭牌刻字</div><div class="toggle-desc">在机身正面保留品牌与型号铭牌。</div></div><button class="toggle ${draft.colors.engraving ? 'is-on' : ''}" data-action="flip-path" data-path="colors.engraving"></button></div>
         </div>
       </div>
       <div class="studio-section">
@@ -4200,11 +6625,23 @@
           
           
           
+          
+          
+          
+          
           <div class="callout"><div class="callout-title">${icon('palette')} 色彩协调</div>${ev.warnings.find(w => /双色|色相/.test(w.text)) ? '当前双色搭配存在冲突，建议让其中一种颜色更中性。' : '当前色彩组合协调，材质所呈现的光泽也支持这种气质。'}</div>
           
           
           
+          
+          
+          
+          
           <div class="callout"><div class="callout-title">${icon('layers')} 表面统一性</div>顶盖、握柄与前脸使用不同的处理会带来拼装感。复古与专业设计更依赖材质一致性。</div>
+          
+          
+          
+          
           
           
           
@@ -4247,6 +6684,10 @@
           
           
           
+          
+          
+          
+          
           ${Object.values(D.CONTROL_POSITIONS).map(p => `<option value="${p.id}" ${current.pos === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
         </select>
       </div>`;
@@ -4259,13 +6700,25 @@
           
           
           
+          
+          
+          
+          
           ${[['pro', '专业均衡', '双拨轮 + 摇杆，适合工作流'], ['retro', '复古机械', '大量拨轮与独立按键'], ['video', '视频优先', '录制 / 自定义键优先'], ['minimal', '极简触控', '少按键、触控为主']].map(([id, label, desc]) => `<button class="template-btn" data-action="control-preset" data-preset="${id}"><b>${label}</b><span>${desc}</span></button>`).join('')}
         </div>
         <div class="section-split">
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -4273,7 +6726,15 @@
           
           
           
+          
+          
+          
+          
               <div class="control-row header"><span>按键</span><span>启用</span><span>位置</span></div>
+          
+          
+          
+          
           
           
           
@@ -4281,7 +6742,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -4289,7 +6758,15 @@
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -4297,7 +6774,15 @@
           
           
           
+          
+          
+          
+          
             <div class="dial-grid">
+          
+          
+          
+          
           
           
           
@@ -4305,11 +6790,23 @@
           
           
           
+          
+          
+          
+          
               ${toggleRow('controls.joystick', '多功能摇杆', draft.controls.joystick, '快速移动自动对焦点')}
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -4317,11 +6814,23 @@
           
           
           
+          
+          
+          
+          
             <div class="mini-label mt-16 mb-8">触控区域</div>
           
           
           
+          
+          
+          
+          
             <div class="segmented">
+          
+          
+          
+          
           
           
           
@@ -4329,7 +6838,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -4337,7 +6854,15 @@
           
           
           
+          
+          
+          
+          
             <div class="mini-label mt-16 mb-8">屏幕界面语言</div>
+          
+          
+          
+          
           
           
           
@@ -4345,7 +6870,15 @@
           
           
           
+          
+          
+          
+          
               ${[['professional', '专业仪表'], ['classic', '复古机械'], ['minimal', '极简触控'], ['cinema', '电影片场']].map(([v, l]) => `<button class="${(draft.softwareUI || 'professional') === v ? 'is-active' : ''}" data-action="set-choice" data-path="softwareUI" data-value="${v}">${l}</button>`).join('')}
+          
+          
+          
+          
           
           
           
@@ -4353,7 +6886,15 @@
           
           
           
+          
+          
+          
+          
             <div class="form-help mt-8">菜单与实时取景的界面语言会影响整机的专业感和用户直觉。</div>
+          
+          
+          
+          
           
           
           
@@ -4366,13 +6907,25 @@
           
           
           
+          
+          
+          
+          
           ${screenOptions.map(s => optionCard({ name: s.name, meta: s.meta, active: screen.type === s.id, action: 'set-choice', path: 'screen.type', value: s.id })).join('')}
         </div>
         ${screen.type !== 'none' ? `<div class="range-cluster mt-16">
           
           
           
+          
+          
+          
+          
           ${rangeField('screen.size', '屏幕尺寸', Number(screen.size).toFixed(1), 2, 4.5, 0.1, '英寸', '对角线尺寸；过大可能干扰机身比例')}
+          
+          
+          
+          
           
           
           
@@ -4382,7 +6935,15 @@
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -4390,7 +6951,15 @@
           
           
           
+          
+          
+          
+          
             <div class="segmented">
+          
+          
+          
+          
           
           
           
@@ -4398,7 +6967,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -4406,11 +6983,23 @@
           
           
           
+          
+          
+          
+          
               ${rangeField('screen.nits', '峰值亮度', Math.round(screen.nits), 300, 3000, 50, 'nit', '户外取景能力')}
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -4418,7 +7007,15 @@
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -4426,7 +7023,15 @@
           
           
           
+          
+          
+          
+          
             <div class="segmented">${Object.values(D.GAMUTS).map(g => `<button class="${screen.gamut === g.id ? 'is-active' : ''}" data-action="set-choice" data-path="screen.gamut" data-value="${g.id}">${esc(g.name)}</button>`).join('')}</div>
+          
+          
+          
+          
           
           
           
@@ -4434,7 +7039,15 @@
           
           
           
+          
+          
+          
+          
             <div class="flex gap-8 mt-12">
+          
+          
+          
+          
           
           
           
@@ -4442,11 +7055,23 @@
           
           
           
+          
+          
+          
+          
               <div><div class="toggle-label">触控屏</div><div class="toggle-desc">视频博主与大众用户的重要触点。</div></div>
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -4459,9 +7084,17 @@
           
           
           
+          
+          
+          
+          
           ${Object.values(D.VIEWFINDER_TYPES).map(v => optionCard({ name: esc(v.name), desc: esc(v.desc), active: view.type === v.id, action: 'set-choice', path: 'viewfinder.type', value: v.id })).join('')}
         </div>
         ${view.type !== 'none' ? `<div class="form-grid cols-3 mt-12">
+          
+          
+          
+          
           
           
           
@@ -4469,7 +7102,15 @@
           
           
           
+          
+          
+          
+          
           <div class="form-field"><label>取景器分辨率</label><select class="select-input" data-path="viewfinder.res">${vfResOpts.map(o => `<option value="${o.id}" ${view.res === o.id ? 'selected' : ''} ${game.company.tech.screen < o.tech ? 'disabled' : ''}>${o.label}${game.company.tech.screen < o.tech ? ' · 需 Lv.' + o.tech : ''}</option>`).join('')}</select></div>
+          
+          
+          
+          
           
           
           
@@ -4482,11 +7123,23 @@
           
           
           
+          
+          
+          
+          
           <div class="callout"><div class="callout-title">${icon('target')} 专业感</div>${ev.traits.pro >= 70 ? '拨轮、取景器与按键布局呈现出专业工作流的逻辑。' : '当前专业感偏弱，专业用户可能会把它当作消费级产品。'}</div>
           
           
           
+          
+          
+          
+          
           <div class="callout"><div class="callout-title">${icon('hand')} 握持与误触</div>${ev.crowdedZones.length ? '有按键集中在同一区域，容易发生误触。' : '按键分布在可用的操作区域内。'}</div>
+          
+          
+          
+          
           
           
           
@@ -4506,7 +7159,15 @@
           
           
           
+          
+          
+          
+          
           ${mounts.map(m => {
+          
+          
+          
+          
           
           
           
@@ -4514,7 +7175,15 @@
           
           
           
+          
+          
+          
+          
             return optionCard({ name: `${esc(m.name)} <span style="font-family:var(--font-mono);font-size:7px;color:var(--faint)">${esc(m.en)}</span>`, desc: esc(m.desc), meta: `<span>最大像场 ${esc(D.SENSOR_FORMATS[Object.keys(D.SENSOR_FORMATS).find(k => D.SENSOR_FORMATS[k].index === m.maxFormat)]?.name || '—')}</span>${!compatible ? '<span class="bad">像场不足</span>' : ''}`, active: draft.mount.type === m.id, action: 'set-choice', path: 'mount.type', value: m.id, locked: false });
+          
+          
+          
+          
           
           
           
@@ -4525,11 +7194,23 @@
           
           
           
+          
+          
+          
+          
           <div class="form-field"><label>卡口环材质</label><select class="select-input" data-path="mount.ringMaterial">${Object.values(D.RING_MATERIALS).map(r => `<option value="${r.id}" ${draft.mount.ringMaterial === r.id ? 'selected' : ''}>${esc(r.name)} · +${moneyNumber(r.cost)}</option>`).join('')}</select></div>
           
           
           
+          
+          
+          
+          
           <div class="form-field"><label>卡口对齐</label><div class="segmented">${[['left', '左置'], ['center', '中置'], ['right', '右置']].map(([v, l]) => `<button class="${draft.mount.align === v ? 'is-active' : ''}" data-action="set-choice" data-path="mount.align" data-value="${v}">${l}</button>`).join('')}</div></div>
+          
+          
+          
+          
           
           
           
@@ -4543,7 +7224,15 @@
           
           
           
+          
+          
+          
+          
           ${Object.values(D.FRONT_DETAILS).map(d => {
+          
+          
+          
+          
           
           
           
@@ -4551,11 +7240,23 @@
           
           
           
+          
+          
+          
+          
             if (['cage', 'handle', 'expansion'].includes(d.id) && (game.company.tech.modular || 1) < 2) lock = true;
           
           
           
+          
+          
+          
+          
             return optionCard({ name: esc(d.name), desc: esc(d.desc), active: !!draft.details[d.id], action: 'flip-path', path: `details.${d.id}`, meta: `<span>+${moneyNumber(d.cost)}</span>${d.weight ? `<span>+${d.weight}g</span>` : ''}${lock ? '<span class="bad">模块技术 Lv.2</span>' : ''}`, locked: lock });
+          
+          
+          
+          
           
           
           
@@ -4568,9 +7269,17 @@
           
           
           
+          
+          
+          
+          
           ${Object.values(D.ACCESSORIES).map(a => optionCard({ name: esc(a.name), desc: esc(a.desc), active: !!draft.accessories[a.id], action: 'flip-path', path: `accessories.${a.id}`, meta: `<span>+${moneyNumber(a.cost)}</span><span>+${a.weight}g</span>`, iconHTML: icon(a.id === 'monitor' ? 'video' : a.id === 'mic' || a.id === 'wireless' ? 'zap' : a.id === 'cage' || a.id === 'shoulder' ? 'layers' : a.id === 'fan' ? 'refresh' : 'box') })).join('')}
         </div>
         ${(draft.accessories.mic || draft.accessories.monitor || draft.accessories.batteryGrip || draft.accessories.verticalGrip) ? `<div class="form-grid cols-4 mt-12">
+          
+          
+          
+          
           
           
           
@@ -4578,11 +7287,23 @@
           
           
           
+          
+          
+          
+          
           ${draft.accessories.monitor ? `<div class="form-field"><label>监视器尺寸</label><div class="segmented">${[5, 7].map(v => `<button class="${Number(draft.accessories.monitorSize) === v ? 'is-active' : ''}" data-action="set-choice" data-path="accessories.monitorSize" data-value="${v}" data-value-type="number">${v} 英寸</button>`).join('')}</div></div>` : ''}
           
           
           
+          
+          
+          
+          
           ${draft.accessories.batteryGrip ? `<div class="form-field"><label>电池手柄造型</label><div class="segmented">${[['standard', '标准'], ['pro', '加大专业版']].map(([v, l]) => `<button class="${draft.accessories.batteryGripStyle === v ? 'is-active' : ''}" data-action="set-choice" data-path="accessories.batteryGripStyle" data-value="${v}">${l}</button>`).join('')}</div></div>` : ''}
+          
+          
+          
+          
           
           
           
@@ -4596,7 +7317,15 @@
           
           
           
+          
+          
+          
+          
           ${draft.accessories.batteryGrip ? '<span>电池手柄</span>' : ''}${draft.accessories.verticalGrip ? '<span>竖拍手柄</span>' : ''}${draft.accessories.mic ? '<span>机头麦</span>' : ''}${draft.accessories.monitor ? '<span>外接监视器</span>' : ''}${draft.accessories.fan ? '<span>主动散热</span>' : ''}${draft.accessories.cage ? '<span>笼架</span>' : ''}${draft.accessories.shoulder ? '<span>肩扛支架</span>' : ''}${draft.accessories.wireless ? '<span>无线图传</span>' : ''}${draft.accessories.flash ? '<span>闪光灯</span>' : ''}
+          
+          
+          
+          
           
           
           
@@ -4621,35 +7350,58 @@
           
           
           
+          
+          
+          
+          
           ${Object.values(fs).map(f => optionCard({ name: esc(f.name), desc: esc(f.areaLabel), meta: `<span>${esc(f.en)}</span><span>${f.minMP}-${E.maxMPFor(f.id, game.company)}MP</span>`, active: draft.sensor.format === f.id, action: 'set-sensor-format', value: f.id, locked: (f.id === 'mf' && game.company.tech.sensor < 3) || (f.id === 'lf' && game.company.tech.sensor < 4) })).join('')}
         </div>
         <div class="form-grid cols-3 mt-16">
           
           
           
-          <div class="form-field">
           
           
           
-            <label>有效像素 <span class="faint">(最大 ${maxMp}MP)</span></label>
           
-          
-          
-            ${numberRangeField('sensor.mp', 'Megapixels', Math.round(draft.sensor.mp), fmt.minMP, Math.max(maxMp, fmt.minMP), 1, 'MP', '')}
-          
-          
-          
-          </div>
-          
-          
-          
-          <div class="form-field"><label>传感器类型</label><div class="option-grid cols-2">${sensorTypes.map(t => `<button class="option-card ${draft.sensor.type === t.id ? 'is-active' : ''} ${game.company.tech.sensor < t.tech ? 'is-locked' : ''}" data-action="set-choice" data-path="sensor.type" data-value="${t.id}" ${game.company.tech.sensor < t.tech ? 'disabled' : ''}><div class="option-card-name">${esc(t.name)}</div><div class="option-card-meta">${game.company.tech.sensor < t.tech ? '需要 Lv.' + t.tech : t.en}</div></button>`).join('')}</div></div>
-          
-          
-          
-          <div class="form-field"><label>色彩深度</label><div class="segmented">${[10, 12, 14, 16].map(b => `<button class="${Number(draft.sensor.colorDepth) === b ? 'is-active' : ''}" data-action="set-choice" data-path="sensor.colorDepth" data-value="${b}" data-value-type="number">${b}-bit</button>`).join('')}</div><div class="form-help">中画幅和大画幅通常支持更高色彩深度。</div></div>
+          <div class="form-field" style="grid-column:1/-1">
+  <label>CMOS 型号 <span class="faint">（每家厂商自有型号，不可跨厂采购）</span></label>
+  <div class="option-grid cols-2" style="margin-top:6px">
+    ${(() => {
+      const models = (window.FRAME_CHIPS && window.FRAME_CHIPS.cmosModelsFor(game.company.id)) || [];
+      const cur = models.find(m => m.id === draft.sensor.modelId) || models[0];
+      if (!models.length) return '<div class="empty-inline">当前公司还没有可用 CMOS 型号。</div>';
+      return models.map(m => {
+        const on = draft.sensor.modelId === m.id || (!draft.sensor.modelId && cur && cur.id === m.id);
+        const rd = m.readout === 'stacked' ? '堆栈' : m.readout === 'partial' ? '半堆栈' : '背照';
+        const sh = m.shutter === 'global' ? '全域快门' : '卷帘';
+        return `<button class="option-card ${on ? 'is-active' : ''}" data-action="set-cmos-model" data-id="${m.id}">
+          <div class="option-card-name">${m.name}</div>
+          <div class="option-card-meta">${(D.SENSOR_FORMATS[m.format] || {}).name || m.format} · ${m.mp}MP · ${rd} · ${sh}</div>
+          <div class="option-card-meta"><span>单价 ¥${m.cost}</span><span>DR ${m.dr}EV</span><span>需 Lv.${m.tech}</span></div>
+        </button>`;
+      }).join('');
+    })()}
+  </div>
+</div><div class="form-field">
+  <label>读出结构</label>
+  <div class="form-help" style="margin-top:6px">
+    ${(() => {
+      const models = (window.FRAME_CHIPS && window.FRAME_CHIPS.cmosModelsFor(game.company.id)) || [];
+      const m = models.find(x => x.id === draft.sensor.modelId) || models[0];
+      if (!m) return '由所选型号决定';
+      const rd = m.readout === 'stacked' ? '堆栈式' : m.readout === 'partial' ? '半堆栈' : '背照式';
+      const sh = m.shutter === 'global' ? '全域快门' : '卷帘快门';
+      return `${rd} · ${sh} · 动态范围 ${m.dr} EV · ${m.colorDepth}-bit`;
+    })()}
+  </div>
+</div><div class="form-field"><label>色彩深度</label><div class="segmented">${[10, 12, 14, 16].map(b => `<button class="${Number(draft.sensor.colorDepth) === b ? 'is-active' : ''}" data-action="set-choice" data-path="sensor.colorDepth" data-value="${b}" data-value-type="number">${b}-bit</button>`).join('')}</div><div class="form-help">中画幅和大画幅通常支持更高色彩深度。</div></div>
         </div>
         <div class="range-cluster mt-16">
+          
+          
+          
+          
           
           
           
@@ -4657,7 +7409,15 @@
           
           
           
+          
+          
+          
+          
           ${numberRangeField('sensor.baseIso', '原生 ISO', Math.round(draft.sensor.baseIso), 32, 1600, 32, 'ISO', '低原生 ISO 通常意味着更干净的画面')}
+          
+          
+          
+          
           
           
           
@@ -4665,31 +7425,57 @@
           
           
           
+          
+          
+          
+          
           ${toggleRow('sensor.dualIso', '双原生 ISO', draft.sensor.dualIso, '在暗光环境中提供第二档低噪声增益')}
         </div>
       <div class="chip-design-panel">
         ${(() => {
+          
           const info = E.resolveDesignChips(draft, game.company);
+          
           const chips = (game.company.cmosChips || []).slice().sort((a, b) => (b.builtMonth || 0) - (a.builtMonth || 0));
+          
           const best = info.cmos || chips[0] || null;
+          
           const source = (draft.chip && draft.chip.cmosSource) || 'procure';
+          
           const supplier = E.getSensorSupplier(game.company);
+          
           return `<div class="chip-design-head"><div><b>芯片方案 / CMOS</b><span>采购还是自研，会直接改变单位成本、画质上限和发布会叙事。</span></div><span class="badge ${source === 'inhouse' ? 'accent' : ''}">${source === 'inhouse' ? '自研' : '采购'}</span></div>
+          
           <div class="chip-design-grid">
+          
             <button class="chip-design-option ${source === 'procure' ? 'is-active' : ''}" data-action="set-chip-source" data-kind="cmos" data-source="procure">
+          
               <span class="chip-design-label">采购 CMOS</span>
+          
               <b>${esc(supplier.name)}</b>
+          
               <span>成本 ×${supplier.cost.toFixed(2)} · 质量 ×${supplier.quality.toFixed(2)} · 交期 ${supplier.lead} 周</span>
+          
             </button>
+          
             <div class="chip-design-option ${source === 'inhouse' ? 'is-active' : ''} ${best ? '' : 'is-locked'}">
+          
               <span class="chip-design-label">自研 CMOS</span>
+          
               <b>${best ? esc(best.name) : '尚无可用芯片'}</b>
+          
               <span>${best ? `${esc((D.SENSOR_FORMATS[best.format] || {}).name || best.format)} · ${best.mp}MP · 成本 ×${Number(best.costFactor).toFixed(2)} · 画质 +${best.quality}` : '先在芯片实验室完成一个 CMOS 项目'}</span>
+          
               <div class="chip-design-actions">
+          
                 ${best ? `<button class="btn btn-xs ${source === 'inhouse' ? 'btn-primary' : 'btn-secondary'}" data-action="set-chip-source" data-kind="cmos" data-source="inhouse">${source === 'inhouse' ? '已使用' : '使用自研'}</button><button class="btn btn-xs btn-ghost" data-action="adopt-cmos-chip" data-id="${attr(best.id)}">采用该芯片规格</button>` : `<button class="btn btn-xs btn-secondary" data-action="nav" data-page="chips">前往芯片实验室</button>`}
+          
               </div>
+          
             </div>
+          
           </div>
+          
           ${info.warnings.length ? `<div class="callout ${source === 'inhouse' ? 'bad' : ''} mt-8">${info.warnings.map(w => esc(w)).join('<br>')}</div>` : ''}`;
         })()}
       </div>
@@ -4700,7 +7486,15 @@
           
           
           
+          
+          
+          
+          
           ${rangeField('performance.burst', '最高连拍', Math.round(draft.performance.burst), 1, 60, 1, 'fps', '机械/电子快门下的最高速度')}
+          
+          
+          
+          
           
           
           
@@ -4708,7 +7502,15 @@
           
           
           
+          
+          
+          
+          
           ${rangeField('performance.afTracking', '追焦强度', Math.round(draft.performance.afTracking), 1, 5, 1, '/ 5', '算法与处理器共同决定')}
+          
+          
+          
+          
           
           
           
@@ -4718,7 +7520,15 @@
           
           
           
+          
+          
+          
+          
           <div><div class="mini-label mb-8">快门结构</div><div class="option-grid cols-3">${Object.values(D.SHUTTERS).map(s => optionCard({ name: esc(s.name), desc: esc(s.desc), active: draft.performance.shutter === s.id, action: 'set-choice', path: 'performance.shutter', value: s.id, meta: `<span>+${moneyNumber(s.cost)}</span>` })).join('')}</div></div>
+          
+          
+          
+          
           
           
           
@@ -4726,25 +7536,37 @@
         </div>
         <div class="chip-design-panel mt-16">
           ${(() => {
-            const info = E.resolveDesignChips(draft, game.company);
-            const chips = (game.company.afChips || []).slice().sort((a, b) => (b.builtMonth || 0) - (a.builtMonth || 0));
-            const best = info.af || chips[0] || null;
-            const source = (draft.chip && draft.chip.afSource) || 'procure';
-            return `<div class="chip-design-head"><div><b>对焦芯片 / AF</b><span>外购模组稳定省事；自研 AF 芯片能降低模组成本并提供额外追焦加成。</span></div><span class="badge ${source === 'inhouse' ? 'accent' : ''}">${source === 'inhouse' ? '自研' : '采购'}</span></div>
+            const L = window.FRAME_CHIPS;
+            if (!L) return '';
+            const list = L.processorsFor(game.company.id) || [];
+            const cur = list.find(p => (draft.chip && draft.chip.processorId) === p.id) || list[list.length - 1];
+            const aiChip = cur && cur.aiChipId ? L.aiChipById(cur.aiChipId) : null;
+            const unlocked = (p) => {
+              if (game.company.tech.af < (p.techAf || 1)) return false;
+              if (p.flagshipOnly && !['sports', 'cinema', 'highres'].includes(draft.category)) return false;
+              return true;
+            };
+            return `<div class="chip-design-head"><div><b>影像主处理器 / 对焦运算</b><span>对焦运算与 AI 识别都由本厂自有的处理器承担，不接受跨厂采购。新一代处理器需要更高的对焦技术等级。</span></div><span class="badge accent">本厂自研</span></div>
             <div class="chip-design-grid">
-              <button class="chip-design-option ${source === 'procure' ? 'is-active' : ''}" data-action="set-chip-source" data-kind="af" data-source="procure">
-                <span class="chip-design-label">采购 AF 模组</span>
-                <b>${esc(D.AF_SYSTEMS[draft.performance.afSystem] ? D.AF_SYSTEMS[draft.performance.afSystem].name : '自动对焦模组')}</b>
-                <span>随对焦系统一起采购，成本已计入整机</span>
-              </button>
-              <div class="chip-design-option ${source === 'inhouse' ? 'is-active' : ''} ${best ? '' : 'is-locked'}">
-                <span class="chip-design-label">自研 AF 芯片</span>
-                <b>${best ? esc(best.name) : '尚无可用芯片'}</b>
-                <span>${best ? `对焦 +${best.bonus} · 模组成本 ${best.costDelta}` : '先在芯片实验室完成一个 AF 芯片项目'}</span>
-                <div class="chip-design-actions">
-                  ${best ? `<button class="btn btn-xs ${source === 'inhouse' ? 'btn-primary' : 'btn-secondary'}" data-action="set-chip-source" data-kind="af" data-source="inhouse">${source === 'inhouse' ? '已使用' : '使用自研'}</button><button class="btn btn-xs btn-ghost" data-action="adopt-af-chip" data-id="${attr(best.id)}">采用当前芯片</button>` : `<button class="btn btn-xs btn-secondary" data-action="nav" data-page="chips">前往芯片实验室</button>`}
-                </div>
-              </div>
+              ${list.map(p => {
+                const on = cur && cur.id === p.id;
+                const ok = unlocked(p);
+                const ai = p.aiChipId ? L.aiChipById(p.aiChipId) : null;
+                return `<div class="chip-design-option ${on ? 'is-active' : ''} ${ok ? '' : 'is-locked'}">
+                  <span class="chip-design-label">${esc(p.en || p.name)}</span>
+                  <b>${esc(p.name)}</b>
+                  <span>对焦 ${p.afScore} · AI 识别 ${p.aiScore} · 锁定 ${p.lockMs}ms</span>
+                  <span>${ai ? '独立 AI 芯片：' + esc(ai.name) : 'AI 识别集成在主处理器内'}</span>
+                  <span class="faint">${esc((p.subjects || []).join(' / '))}</span>
+                  <div class="chip-design-actions">
+                    ${ok
+                      ? (on
+                        ? `<button class="btn btn-xs btn-primary" disabled>已使用</button>`
+                        : `<button class="btn btn-xs btn-secondary" data-action="set-processor" data-id="${p.id}">采用</button>`)
+                      : `<span class="faint" style="font-size:9px">需要对焦技术 Lv.${p.techAf}${p.flagshipOnly ? ' · 仅旗舰线' : ''}</span>`}
+                  </div>
+                </div>`;
+              }).join('')}
             </div>`;
           })()}
         </div>
@@ -4757,7 +7579,15 @@
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -4765,7 +7595,15 @@
           
           
           
+          
+          
+          
+          
             <div class="flex gap-6" style="flex-wrap:wrap">${Object.values(D.STORAGE_FORMATS).map(f => `<button class="check-chip ${draft.performance.storage.includes(f.id) ? 'is-active' : ''}" data-action="toggle-array" data-path="performance.storage" data-value="${f.id}">${esc(f.name)}</button>`).join('')}</div>
+          
+          
+          
+          
           
           
           
@@ -4773,7 +7611,15 @@
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -4781,7 +7627,15 @@
           
           
           
+          
+          
+          
+          
             <div class="flex gap-8 items-center">
+          
+          
+          
+          
           
           
           
@@ -4789,7 +7643,15 @@
           
           
           
+          
+          
+          
+          
               <select class="select-input" style="flex:1" data-path="performance.cardType">${cardTypes.map(c => `<option value="${c.id}" ${draft.performance.cardType === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+          
+          
+          
+          
           
           
           
@@ -4797,7 +7659,15 @@
           
           
           
+          
+          
+          
+          
             <div class="form-help">双卡槽是专业工作流的基本安全网；高码率视频对卡速有硬要求。</div>
+          
+          
+          
+          
           
           
           
@@ -4807,11 +7677,23 @@
           
           
           
+          
+          
+          
+          
           <div class="callout"><div class="callout-title">${icon('image')} 画质评分 ${Math.round(ev.scores.image)}</div>画幅与技术共同决定上限，过高像素密度会带来噪声与发热。</div>
           
           
           
+          
+          
+          
+          
           <div class="callout"><div class="callout-title">${icon('target')} 对焦评分 ${Math.round(ev.scores.focus)}</div>${ev.scores.focus >= 75 ? '现代AI识别对焦，快速且可靠。' : '对焦体系与当前价位相比仍有提升空间。'}</div>
+          
+          
+          
+          
           
           
           
@@ -4835,10 +7717,18 @@
           
           
           
+          
+          
+          
+          
           ${resopts.map(r => optionCard({ name: esc(r.name), desc: esc(r.label), active: video.res === r.id, action: 'set-choice', path: 'video.res', value: r.id, meta: `<span>${game.company.tech.video < r.level ? '需要 Lv.' + r.level : '已解锁'}</span>`, locked: game.company.tech.video < r.level })).join('')}
         </div>
         <div class="mini-label mt-16 mb-8">最高帧率</div>
         <div class="segmented">
+          
+          
+          
+          
           
           
           
@@ -4848,7 +7738,15 @@
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -4856,7 +7754,15 @@
           
           
           
+          
+          
+          
+          
             <div class="flex gap-6" style="flex-wrap:wrap">
+          
+          
+          
+          
           
           
           
@@ -4864,7 +7770,15 @@
           
           
           
+          
+          
+          
+          
                 const need = c.tech; const selected = (video.codecs || []).includes(c.id); const locked = game.company.tech.codec < need;
+          
+          
+          
+          
           
           
           
@@ -4872,7 +7786,15 @@
           
           
           
+          
+          
+          
+          
               }).join('')}
+          
+          
+          
+          
           
           
           
@@ -4880,11 +7802,23 @@
           
           
           
+          
+          
+          
+          
             <div class="form-help">至少选择一种编码。更多编码会增加处理器成本与授权成本。</div>
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -4892,7 +7826,15 @@
           
           
           
+          
+          
+          
+          
             ${rangeField('video.bitrate', '最高码率', Math.round(video.bitrate), 50, 6000, 50, 'Mbps', '高码率意味着更高的存储与散热压力')}
+          
+          
+          
+          
           
           
           
@@ -4900,9 +7842,17 @@
           
           
           
+          
+          
+          
+          
           </div>
         </div>
         <div class="grid-3 mt-12">
+          
+          
+          
+          
           
           
           
@@ -4915,7 +7865,15 @@
           
           
           
+          
+          
+          
+          
           <div><div class="mini-label mb-8">物理接口</div><div class="flex gap-6" style="flex-wrap:wrap">${ports.map(p => `<button class="check-chip ${draft.ports.includes(p.id) ? 'is-active' : ''}" data-action="toggle-array" data-path="ports" data-value="${p.id}">${esc(p.name)} <span class="faint" style="font-size:7px">+${moneyNumber(p.cost)}</span></button>`).join('')}</div></div>
+          
+          
+          
+          
           
           
           
@@ -4928,7 +7886,15 @@
           
           
           
+          
+          
+          
+          
           ${rangeField('battery.capacity', '电池容量', Math.round(draft.battery.capacity), 700, 10000, 50, 'mAh', '容量越大越重，也会占用更多机身空间')}
+          
+          
+          
+          
           
           
           
@@ -4936,7 +7902,15 @@
           
           
           
+          
+          
+          
+          
           ${rangeField('battery.recordLimit', '固件录制上限', Math.round(draft.battery.recordLimit), 1, 240, 1, '分钟', '人为设置的固件限制，而非电池实际续航')}
+          
+          
+          
+          
           
           
           
@@ -4944,7 +7918,15 @@
           
           
           
+          
+          
+          
+          
             ${toggleRow('battery.usbPower', 'USB 供电', draft.battery.usbPower, '直播与长时间桌面工作')}
+          
+          
+          
+          
           
           
           
@@ -4952,7 +7934,15 @@
           
           
           
+          
+          
+          
+          
             ${toggleRow('battery.externalPower', '外接电源', draft.battery.externalPower, '电源接口与供电协议')}
+          
+          
+          
+          
           
           
           
@@ -4962,11 +7952,23 @@
           
           
           
+          
+          
+          
+          
           <div class="callout"><div class="callout-title">${icon('power')} 静态续航</div>约 ${ev.scores.shots} 张 / 次充电。基于屏幕亮度、传感器和机身功耗估算。</div>
           
           
           
+          
+          
+          
+          
           <div class="callout ${ev.scores.thermalRisk > 28 ? 'bad' : ''}"><div class="callout-title">${icon('refresh')} 热管理</div>估算热风险 ${Math.round(ev.scores.thermalRisk)} / 100。连续录制实际上限约 ${ev.scores.effectiveRecordLimit} 分钟。</div>
+          
+          
+          
+          
           
           
           
@@ -4997,11 +7999,23 @@
           
           
           
+          
+          
+          
+          
           <div class="form-field"><label>零售价 / 单机身</label><div class="input-with-unit"><input class="text-input" type="number" min="99" step="100" value="${Math.round(draft.price)}" data-path="price" data-number="true"><span>CNY</span></div><div class="form-help">市场公允价约 ${moneyNumber(ev.fairPrice)}，建议成本价基础上保留渠道与售后空间。</div></div>
           
           
           
+          
+          
+          
+          
           <div class="form-field"><label>首批备货</label><div class="input-with-unit"><input class="text-input" type="number" min="0" step="100" value="${Math.round(draft.initialStock)}" data-path="initialStock" data-number="true"><span>台</span></div><div class="form-help">建议 ${ev.suggestedStock} 台。自动生产会按预测持续补货。</div></div>
+          
+          
+          
+          
           
           
           
@@ -5011,11 +8025,23 @@
           
           
           
+          
+          
+          
+          
           <div class="financial-mini"><label>单机制造成本</label><b>${moneyNumber(ev.unitCost)}</b></div>
           
           
           
+          
+          
+          
+          
           <div class="financial-mini"><label>毛利率（按售价）</label><b>${pctNum(margin * 100)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -5028,12 +8054,20 @@
           
           
           
+          
+          
+          
+          
           ${Object.values(D.QC_TIERS).map(q => optionCard({ name: esc(q.name), desc: esc(q.desc), active: draft.qc === q.id, action: 'set-choice', path: 'qc', value: q.id, meta: `<span>+${moneyNumber(q.perUnit)} / 台</span><span>故障率 ×${q.defectMul}</span>` })).join('')}
         </div>
       </div>
       <div class="studio-section">
         <div class="studio-section-head"><div><div class="studio-section-title"><span class="idx">03</span> 认证与合规</div><div class="studio-section-desc">无线、电池与影像设备需要按市场送审。认证覆盖范围会影响首发市场与后续渠道成本。</div></div><span class="studio-section-hint">${esc(launch.cert.name)} · ${moneyNumber(launch.certCost)}</span></div>
         <div class="option-grid cols-3">
+          
+          
+          
+          
           
           
           
@@ -5046,10 +8080,16 @@
           
           
           
+          
+          
+          
+          
           ${Object.values(D.CAMPAIGN_TIERS).map(c => optionCard({ name: esc(c.name), desc: esc(c.desc), active: draft.campaign === c.id, action: 'set-choice', path: 'campaign', value: c.id, meta: `<span>${c.cost ? moneyNumber(c.cost) : '免费'}</span><span>声量 +${c.hype}</span>` })).join('')}
         </div>
         <div class="launch-plan-summary">
+          
           <div class="launch-plan-summary-main"><span class="eyebrow">LAUNCH EVENT</span><b>${esc(launch.event ? launch.event.label : '静默上市')}</b><span>${launch.event ? `声量 ${Math.round(launch.event.hype)} · 媒体评分 ${Math.round(launch.event.pressScore)} · 预购 ${launch.preorderUnits ? units(launch.preorderUnits) : '—'} · 成本 ${money(launch.event.cost)}` : '尚未配置发布会'}</span></div>
+          
           <button class="btn btn-sm btn-secondary" data-action="open-launch-planner" data-kind="camera">${icon('megaphone')} 策划发布会</button>
         </div>
       </div>
@@ -5059,7 +8099,15 @@
           
           
           
+          
+          
+          
+          
           <div class="launch-box-title">${icon('receipt')} 上市投资概览</div>
+          
+          
+          
+          
           
           
           
@@ -5067,7 +8115,15 @@
           
           
           
+          
+          
+          
+          
             <div><label>模具与试产</label><b>${moneyNumber(launch.tooling)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -5075,7 +8131,15 @@
           
           
           
+          
+          
+          
+          
             <div><label>${esc(launch.cert.name)}</label><b>${moneyNumber(launch.certCost)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -5083,7 +8147,15 @@
           
           
           
+          
+          
+          
+          
             <div><label>现金总计占用</label><b style="color:${launch.totalLaunch > game.company.cash ? 'var(--bad)' : 'var(--accent-bright)'}">${moneyNumber(launch.totalLaunch)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -5091,11 +8163,23 @@
           
           
           
+          
+          
+          
+          
             <div><label>预计首月需求</label><b>${units(expectedDemand)}</b></div>
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -5105,11 +8189,23 @@
           
           
           
+          
+          
+          
+          
           <div class="mini-label mb-8">成本结构 / COST BREAKDOWN</div>
           
           
           
+          
+          
+          
+          
           ${Object.entries(ev.costBreakdown).filter(([k]) => k !== 'total').map(([k, v]) => `<div class="cost-line"><label>${esc(COMPONENT_LABEL(k))}</label><b>${v === 0 ? '—' : moneyNumber(v)}</b></div>`).join('')}
+          
+          
+          
+          
           
           
           
@@ -5128,11 +8224,23 @@
           
           
           
+          
+          
+          
+          
           <div><div class="mini-label">预计口碑</div><div style="font-family:var(--font-display);font-size:28px;letter-spacing:-.03em">${ev.overall}<span style="font-size:11px;color:var(--faint);font-family:var(--font-ui)"> / 100</span></div></div>
           
           
           
+          
+          
+          
+          
           <div><div class="mini-label">目标用户匹配</div><div style="font-family:var(--font-display);font-size:28px;letter-spacing:-.03em">${ev.targetMatch}%</div></div>
+          
+          
+          
+          
           
           
           
@@ -5168,7 +8276,15 @@
           
           
           
+          
+          
+          
+          
           <div class="view-switcher">
+          
+          
+          
+          
           
           
           
@@ -5176,7 +8292,15 @@
           
           
           
+          
+          
+          
+          
             <button class="view-btn ${!photoMode ? 'is-active' : ''}" data-action="preview-mode" data-mode="technical">技术图</button>
+          
+          
+          
+          
           
           
           
@@ -5184,7 +8308,15 @@
           
           
           
+          
+          
+          
+          
           ${photoMode ? '' : `<div class="view-switcher">
+          
+          
+          
+          
           
           
           
@@ -5192,7 +8324,15 @@
           
           
           
+          
+          
+          
+          
             <button class="view-btn ${UI.lensView === 'cutaway' ? 'is-active' : ''}" data-action="lens-view" data-view="cutaway">剖面</button>
+          
+          
+          
+          
           
           
           
@@ -5208,7 +8348,15 @@
           
           
           
+          
+          
+          
+          
           <div><div class="preview-info-name">${esc(lens.name || '未命名镜头')}</div><div class="preview-info-sub">${esc(lens.mount.type)} 卡口 · ${esc(D.LENS_TYPES[lens.lensType]?.name || '镜头')} · ${esc(D.SENSOR_FORMATS[lens.coverage]?.name || '')}</div></div>
+          
+          
+          
+          
           
           
           
@@ -5225,7 +8373,15 @@
           
           
           
+          
+          
+          
+          
           <div class="donut">
+          
+          
+          
+          
           
           
           
@@ -5233,11 +8389,23 @@
           
           
           
+          
+          
+          
+          
             <div class="donut-center"><b>${ev.overall}</b><span>综合预测</span></div>
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -5281,7 +8449,15 @@
           
           
           
+          
+          
+          
+          
           <button class="studio-back" data-action="nav" data-page="design">${icon('arrowLeft')} 设计工作室</button>
+          
+          
+          
+          
           
           
           
@@ -5289,7 +8465,15 @@
           
           
           
+          
+          
+          
+          
             <input class="studio-title-input" value="${attr(lens.name)}" data-path="name" data-scope="lens" maxlength="42" aria-label="镜头名称">
+          
+          
+          
+          
           
           
           
@@ -5297,11 +8481,23 @@
           
           
           
+          
+          
+          
+          
             <span class="badge">${esc(D.LENS_TYPES[lens.lensType]?.name || '镜头')}</span>
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -5311,11 +8507,23 @@
           
           
           
+          
+          
+          
+          
           <button class="btn btn-ghost btn-sm" data-action="save-draft">${icon('save')} 保存草稿</button>
           
           
           
+          
+          
+          
+          
           <button class="btn btn-ghost btn-sm" data-action="discard-lens-draft">${icon('trash')} 放弃</button>
+          
+          
+          
+          
           
           
           
@@ -5327,6 +8535,10 @@
           
           
           
+          
+          
+          
+          
           ${LENS_STEPS.map(s => `<button class="studio-tab ${step === s.id ? 'is-active' : ''} ${step > s.id ? 'is-done' : ''}" data-action="lens-step" data-step="${s.id}"><span class="step-num">${String(s.id).padStart(2, '0')}</span>${s.short}</button>`).join('')}
         </div>
       </div>
@@ -5335,7 +8547,15 @@
           
           
           
+          
+          
+          
+          
           <div class="studio-step">
+          
+          
+          
+          
           
           
           
@@ -5343,7 +8563,15 @@
           
           
           
+          
+          
+          
+          
               <div><div class="studio-step-eyebrow">STEP ${String(step).padStart(2, '0')} / ${stepMeta.label}</div><h2 class="studio-step-title">${esc(lensStepTitle(step))}</h2><p class="studio-step-desc">${lensStepDesc(step)}</p></div>
+          
+          
+          
+          
           
           
           
@@ -5351,7 +8579,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -5359,7 +8595,15 @@
           
           
           
+          
+          
+          
+          
             <div class="studio-step-footer">
+          
+          
+          
+          
           
           
           
@@ -5367,7 +8611,15 @@
           
           
           
+          
+          
+          
+          
               <div class="studio-footer-actions">
+          
+          
+          
+          
           
           
           
@@ -5375,7 +8627,15 @@
           
           
           
+          
+          
+          
+          
                 <button class="btn btn-sm btn-secondary" data-action="save-draft">保存</button>
+          
+          
+          
+          
           
           
           
@@ -5383,11 +8643,23 @@
           
           
           
+          
+          
+          
+          
               </div>
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -5431,6 +8703,10 @@
           
           
           
+          
+          
+          
+          
           ${templates.map(t => `<button class="template-btn" data-action="lens-template" data-template="${t.id}"><b>${t.name}</b><span>${t.desc}</span></button>`).join('')}
         </div>
       </div>
@@ -5440,13 +8716,25 @@
           
           
           
+          
+          
+          
+          
           ${lensTypes.map(t => optionCard({ name: esc(t.name), desc: esc(t.desc), active: lens.lensType === t.id, action: 'set-choice', path: 'lensType', value: t.id, meta: `<span>${esc(t.en)}</span><span>成本 ×${t.costMul}</span>` })).join('')}
         </div>
         <div class="form-grid mt-16">
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -5454,7 +8742,15 @@
           
           
           
+          
+          
+          
+          
             <div class="mount-mini-grid">
+          
+          
+          
+          
           
           
           
@@ -5462,7 +8758,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -5470,7 +8774,15 @@
           
           
           
+          
+          
+          
+          
           <div>
+          
+          
+          
+          
           
           
           
@@ -5478,7 +8790,15 @@
           
           
           
+          
+          
+          
+          
             <div class="segmented">${Object.values(D.SENSOR_FORMATS).slice(0, 5).map(f => `<button class="${lens.coverage === f.id ? 'is-active' : ''}" data-action="set-choice" data-path="coverage" data-value="${f.id}">${esc(f.name)}</button>`).join('')}</div>
+          
+          
+          
+          
           
           
           
@@ -5486,11 +8806,23 @@
           
           
           
+          
+          
+          
+          
             <div class="mini-label mt-16 mb-8">目标用户</div>
           
           
           
+          
+          
+          
+          
             <div class="choice-row">${D.SEGMENTS_ARRAY.map(s => `<button class="choice-btn ${lens.targetSegment === s.id ? 'is-active' : ''}" data-action="set-choice" data-path="targetSegment" data-value="${s.id}">${esc(s.name)}</button>`).join('')}</div>
+          
+          
+          
+          
           
           
           
@@ -5503,7 +8835,15 @@
           
           
           
+          
+          
+          
+          
           <div class="form-field"><label>起始焦距</label><div class="input-with-unit"><input class="text-input" type="number" data-path="focalMin" data-number="true" min="4" max="1200" step="1" value="${lens.focalMin}"><span>mm</span></div></div>
+          
+          
+          
+          
           
           
           
@@ -5511,7 +8851,15 @@
           
           
           
+          
+          
+          
+          
           <div class="form-field"><label>最大光圈</label><div class="input-with-unit"><input class="text-input" type="number" data-path="maxAperture" data-number="true" min="0.7" max="8" step="0.1" value="${lens.maxAperture}"><span>F</span></div></div>
+          
+          
+          
+          
           
           
           
@@ -5521,9 +8869,17 @@
           
           
           
+          
+          
+          
+          
           ${[[24, 70], [28, 75], [50, 50], [85, 85], [70, 200], [100, 400], [12, 40], [35, 35]].map(([a, b]) => `<button data-action="lens-focal-preset" data-min="${a}" data-max="${b}">${a === b ? a + 'mm' : a + '-' + b + 'mm'}</button>`).join('')}
         </div>
         <div class="grid-2 mt-16">
+          
+          
+          
+          
           
           
           
@@ -5531,7 +8887,15 @@
           
           
           
+          
+          
+          
+          
             ${lensCounter('镜片数', lens.optical.elements, 'optical.elements', 4, 30, ' 片')}
+          
+          
+          
+          
           
           
           
@@ -5539,7 +8903,15 @@
           
           
           
+          
+          
+          
+          
             ${lensCounter('非球面', lens.optical.aspherical, 'optical.aspherical', 0, 8, ' 片')}
+          
+          
+          
+          
           
           
           
@@ -5547,7 +8919,15 @@
           
           
           
+          
+          
+          
+          
           </div></div>
+          
+          
+          
+          
           
           
           
@@ -5555,11 +8935,23 @@
           
           
           
+          
+          
+          
+          
             ${lensCounter('萤石镜片', lens.optical.fluorite, 'optical.fluorite', 0, 4, ' 片')}
           
           
           
+          
+          
+          
+          
             ${lensCounter('滤镜口径', lens.filter, 'filter', 30, 160, ' mm')}
+          
+          
+          
+          
           
           
           
@@ -5569,7 +8961,15 @@
           
           
           
+          
+          
+          
+          
           <div><div class="mini-label mb-8">镀膜</div><div class="segmented">${coatOpts.map(c => `<button class="${lens.optical.coating === c.id ? 'is-active' : ''}" data-action="set-choice" data-path="optical.coating" data-value="${c.id}" ${c.tech && game.company.tech.optics < c.tech ? 'disabled title="需要光学技术 Lv.' + c.tech + '"' : ''}>${esc(c.name)}${c.tech && game.company.tech.optics < c.tech ? ' 🔒' : ''}</button>`).join('')}</div></div>
+          
+          
+          
+          
           
           
           
@@ -5579,7 +8979,15 @@
           
           
           
+          
+          
+          
+          
           ${rangeField('focus.minDistance', '最近对焦距离', Number(lens.focus.minDistance).toFixed(2), 0.08, 3, 0.01, 'm', '越近越适合微距和细节')}
+          
+          
+          
+          
           
           
           
@@ -5587,7 +8995,15 @@
           
           
           
+          
+          
+          
+          
           ${toggleRow('stabilization', '镜头光学防抖 OIS', lens.stabilization, '在长焦和弱光中提升成功率')}
+          
+          
+          
+          
           
           
           
@@ -5600,11 +9016,23 @@
           
           
           
+          
+          
+          
+          
           <div class="callout"><div class="callout-title">${icon('lens')} 光学评分 ${Math.round(ev.optical)}</div>${ev.optical >= 80 ? '特殊镜片与镀膜让这支镜头具备高端竞争力。' : '光学结构还有提升空间。'}</div>
           
           
           
+          
+          
+          
+          
           <div class="callout"><div class="callout-title">${icon('target')} 对焦与防抖</div>对焦 ${Math.round(ev.focus)} · 防抖 ${Math.round(ev.stabilization)} · 目标匹配 ${ev.targetMatch}%</div>
+          
+          
+          
+          
           
           
           
@@ -5621,7 +9049,15 @@
           
           
           
+          
+          
+          
+          
           ${D.LENS_STYLES_ARRAY.map(s => `<button class="lens-style-card ${lens.body.style === s.id ? 'is-active' : ''}" data-action="set-choice" data-path="body.style" data-value="${s.id}">
+          
+          
+          
+          
           
           
           
@@ -5629,7 +9065,15 @@
           
           
           
+          
+          
+          
+          
             <span><span class="lens-style-name">${esc(s.name)}</span><span class="lens-style-sub">${esc(s.en)}</span></span>
+          
+          
+          
+          
           
           
           
@@ -5642,9 +9086,17 @@
           
           
           
+          
+          
+          
+          
           ${Object.values(D.LENS_MATERIALS).map(m => optionCard({ name: esc(m.name), desc: esc(m.desc), active: lens.body.material === m.id, action: 'set-choice', path: 'body.material', value: m.id, meta: `<span>质感 +${Math.round(m.premium * 100)}</span>` })).join('')}
         </div>
         <div class="form-grid cols-3 mt-16">
+          
+          
+          
+          
           
           
           
@@ -5652,7 +9104,15 @@
           
           
           
+          
+          
+          
+          
           <div class="form-field"><label>镜身颜色</label><div class="swatch-line"><span class="swatch-large" style="background:${attr(lens.body.color)}"></span><div class="swatch-meta"><b>${attr(lens.body.color)}</b><span>主色</span></div><input type="color" value="${attr(lens.body.color)}" data-color-path="body.color"></div></div>
+          
+          
+          
+          
           
           
           
@@ -5665,11 +9125,23 @@
           
           
           
+          
+          
+          
+          
           ${rangeField('body.length', '镜身长度', Math.round(lens.body.length), 25, 420, 1, 'mm', '越长越像专业镜头，也更难携带')}
           
           
           
+          
+          
+          
+          
           ${rangeField('body.diameter', '镜身直径', Math.round(lens.body.diameter), 28, 220, 1, 'mm', '大直径容纳更大前组镜片')}
+          
+          
+          
+          
           
           
           
@@ -5679,7 +9151,15 @@
           
           
           
+          
+          
+          
+          
           ${toggleRow('body.weatherSealed', '全天候防尘防滴', lens.body.weatherSealed, '镜头密封圈与接口防护')}
+          
+          
+          
+          
           
           
           
@@ -5687,11 +9167,23 @@
           
           
           
+          
+          
+          
+          
           ${toggleRow('body.apertureRing', '光圈环', lens.body.apertureRing, '电影与复古操控仪式感')}
           
           
           
+          
+          
+          
+          
           ${toggleRow('body.focusGear', '对焦齿轮环', lens.body.focusGear, '跟焦器可驱动')}
+          
+          
+          
+          
           
           
           
@@ -5705,11 +9197,23 @@
           
           
           
+          
+          
+          
+          
           <div class="callout"><div class="callout-title">${icon('palette')} 颜值 ${Math.round(ev.looks)}</div>镜身比例、装饰环和材质共同塑造品牌印象。</div>
           
           
           
+          
+          
+          
+          
           <div class="callout"><div class="callout-title">${icon('layers')} 做工 ${Math.round(ev.build)}</div>${ev.build >= 70 ? '机械结构与密封性看起来可靠。' : '材料和机械结构仍有廉价风险。'}</div>
+          
+          
+          
+          
           
           
           
@@ -5730,11 +9234,23 @@
           
           
           
+          
+          
+          
+          
           <div class="form-field"><label>零售价</label><div class="input-with-unit"><input class="text-input" type="number" min="99" step="100" value="${Math.round(lens.price)}" data-path="price" data-number="true"><span>CNY</span></div><div class="form-help">公允价约 ${moneyNumber(ev.fairPrice)}；建议零售价已摊销工装与研发。</div></div>
           
           
           
+          
+          
+          
+          
           <div class="form-field"><label>首批备货</label><div class="input-with-unit"><input class="text-input" type="number" min="0" step="100" value="${Math.round(lens.initialStock)}" data-path="initialStock" data-number="true"><span>支</span></div><div class="form-help">建议 ${ev.suggestedStock} 支。自动补货会跟随需求预测。</div></div>
+          
+          
+          
+          
           
           
           
@@ -5744,7 +9260,15 @@
           
           
           
+          
+          
+          
+          
           <div class="financial-mini"><label>单支制造成本</label><b>${moneyNumber(ev.unitCost)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -5752,7 +9276,15 @@
           
           
           
+          
+          
+          
+          
           <div class="financial-mini"><label>光学评分</label><b>${Math.round(ev.optical)} / 100</b></div>
+          
+          
+          
+          
           
           
           
@@ -5767,7 +9299,9 @@
         <div class="studio-section-head"><div><div class="studio-section-title"><span class="idx">03</span> 发布会与上市营销</div></div></div>
         <div class="option-grid cols-5">${Object.values(D.CAMPAIGN_TIERS).map(c => optionCard({ name: esc(c.name), desc: esc(c.desc), active: lens.campaign === c.id, action: 'set-choice', path: 'campaign', value: c.id, meta: `<span>${c.cost ? moneyNumber(c.cost) : '免费'}</span><span>声量 +${c.hype}</span>` })).join('')}</div>
         <div class="launch-plan-summary mt-12">
+          
           <div class="launch-plan-summary-main"><span class="eyebrow">LAUNCH EVENT</span><b>${esc(launch.event ? launch.event.label : '静默上市')}</b><span>${launch.event ? `声量 ${Math.round(launch.event.hype)} · 媒体评分 ${Math.round(launch.event.pressScore)} · 预购 ${launch.preorderUnits ? units(launch.preorderUnits) : '—'} · 成本 ${money(launch.event.cost)}` : '尚未配置发布会'}</span></div>
+          
           <button class="btn btn-sm btn-secondary" data-action="open-launch-planner" data-kind="lens">${icon('megaphone')} 策划发布会</button>
         </div>
       </div>
@@ -5777,7 +9311,15 @@
           
           
           
+          
+          
+          
+          
           <div class="launch-box-title">${icon('receipt')} 镜头上市投资</div>
+          
+          
+          
+          
           
           
           
@@ -5785,7 +9327,15 @@
           
           
           
+          
+          
+          
+          
             <div><label>工装与试产</label><b>${moneyNumber(launch.tooling)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -5793,7 +9343,15 @@
           
           
           
+          
+          
+          
+          
             <div><label>发布会</label><b>${moneyNumber(launch.campaignCost)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -5801,7 +9359,15 @@
           
           
           
+          
+          
+          
+          
             <div><label>上市后现金</label><b class="${cashAfter < 0 ? 'bad' : ''}">${moneyNumber(cashAfter)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -5809,7 +9375,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -5819,11 +9393,23 @@
           
           
           
+          
+          
+          
+          
           <div class="mini-label mb-8">成本结构 / COST BREAKDOWN</div>
           
           
           
+          
+          
+          
+          
           ${Object.entries(ev.costBreakdown).filter(([k]) => k !== 'total').map(([k, v]) => `<div class="cost-line"><label>${esc(COMPONENT_LABEL(k))}</label><b>${v === 0 ? '—' : moneyNumber(v)}</b></div>`).join('')}
+          
+          
+          
+          
           
           
           
@@ -5842,7 +9428,15 @@
           
           
           
+          
+          
+          
+          
           <div><div class="mini-label">预计口碑</div><div style="font-family:var(--font-display);font-size:28px;letter-spacing:-.03em">${ev.overall}</div></div>
+          
+          
+          
+          
           
           
           
@@ -5882,40 +9476,67 @@
     return `
       ${pageHead({
         eyebrow: 'CHIP LAB / 芯片实验室',
-        title: '把传感器和对焦，做成自己的护城河。',
+        title: '自研半导体',
         sub: 'CMOS 可以采购，也可以自研；对焦芯片同样可以自研。采购快、轻资产，自研前期贵、长期单位成本更低，还能在发布会上讲一个别人没有的芯片故事。',
         actions: `<button class="btn btn-secondary" data-action="open-chip-program" data-kind="${tab === 'af' ? 'af' : 'cmos'}">${icon('plus')} 立项自研${tab === 'af' ? ' AF 芯片' : ' CMOS'}</button><button class="btn btn-primary" data-action="upgrade-chip-lab" ${canUpgrade ? '' : 'disabled'}>${icon('arrowUp')} ${nextLab && upgradeCost != null ? '升级实验室 · ' + moneyNumber(upgradeCost) : '已达最高等级'}</button>`
       })}
       <div class="chip-hero">
         <div class="chip-lab-card">
+          
           <div class="chip-lab-top">
+          
             <div>
+          
               <div class="eyebrow">LAB LEVEL ${level} / ${D.CHIP_LAB_LEVELS.length - 1}</div>
+          
               <div class="chip-lab-name">${esc(lab.name)}</div>
+          
               <div class="chip-lab-en">${esc(lab.en)} · ${esc(lab.desc)}</div>
+          
             </div>
+          
             <span class="badge ${programs.length ? 'accent' : 'good'}">${programs.length}/${slots} 项目</span>
+          
           </div>
+          
           <div class="chip-lab-metrics">
+          
             <div><label>月度芯片研发力</label><b>${power} <small>CP</small></b></div>
+          
             <div><label>可并行项目</label><b>${slots} <small>个</small></b></div>
+          
             <div><label>规格加成</label><b>${lab.quality >= 0 ? '+' : ''}${lab.quality}</b></div>
+          
             <div><label>月度维护</label><b>${lab.upkeep ? money(lab.upkeep) : '—'}</b></div>
+          
           </div>
+          
           <div class="chip-lab-progress">
+          
             <div class="flex justify-between"><span class="mini-label">下一代实验室</span><span class="faint" style="font-size:8px">${nextLab ? esc(nextLab.name) + (upgradeCost != null ? ' · ' + moneyNumber(upgradeCost) : '') : '已达最高等级'}</span></div>
+          
             <div class="progress mt-8"><i style="width:${(level / (D.CHIP_LAB_LEVELS.length - 1)) * 100}%"></i></div>
+          
           </div>
         </div>
         <div class="chip-summary-card">
+          
           <div class="chip-summary-top"><div class="eyebrow">IN-HOUSE SILICON</div><div class="chip-summary-title">自有芯片库</div></div>
+          
           <div class="chip-summary-grid">
+          
             <div><label>自研 CMOS</label><b>${cmos.length}</b><span>${strategy.cmos === 'inhouse' ? '新设计默认自研' : '当前默认采购'}</span></div>
+          
             <div><label>自研 AF 芯片</label><b>${af.length}</b><span>${strategy.af === 'inhouse' ? '新设计默认自研' : '当前默认采购'}</span></div>
+          
           </div>
+          
           <div class="chip-summary-foot">
+          
             <span>${icon('wallet')} 可用现金 ${money(c.cash)}</span>
+          
             <span>${icon('cpu')} 采购供应商 ${esc(E.getSensorSupplier(c).name)}</span>
+          
           </div>
         </div>
       </div>
@@ -5937,34 +9558,63 @@
       ` : `
         <div class="section-toolbar"><div><div class="section-label"><span class="num">01</span> 采购 / PROCUREMENT</div><div class="faint" style="font-size:9px;margin-top:3px">采购芯片单位成本更高，但不需要前期研发投入，适合现金流紧张或快速铺产品线。</div></div><button class="btn btn-sm btn-secondary" data-action="nav" data-page="operations">${icon('factory')} 供应链设置</button></div>
         <div class="chip-compare-grid">
+          
           <div class="chip-compare-card">
+          
             <div class="chip-compare-head"><div><div class="chip-compare-name">外购 CMOS</div><div class="chip-compare-en">${esc(E.getSensorSupplier(c).name)}</div></div><span class="badge">当前</span></div>
+          
             <div class="chip-compare-row"><label>单位成本系数</label><b>×${E.getSensorSupplier(c).cost.toFixed(2)}</b></div>
+          
             <div class="chip-compare-row"><label>质量系数</label><b>×${E.getSensorSupplier(c).quality.toFixed(2)}</b></div>
+          
             <div class="chip-compare-row"><label>供应交期</label><b>${E.getSensorSupplier(c).lead} 周</b></div>
+          
             <p class="muted" style="font-size:10px;line-height:1.7;margin-top:10px">采购可以随时切换供应商，单位成本由对方报价决定；发布会无法讲“自研芯片”的故事。</p>
+          
             <button class="btn btn-sm btn-secondary mt-12" data-action="nav" data-page="operations">${icon('factory')} 更换供应商</button>
+          
           </div>
+          
           <div class="chip-compare-card is-accent">
+          
             <div class="chip-compare-head"><div><div class="chip-compare-name">自研 CMOS</div><div class="chip-compare-en">IN-HOUSE SILICON</div></div><span class="badge ${cmos.length ? 'good' : ''}">${cmos.length ? cmos.length + ' 颗' : '未完成'}</span></div>
+          
             <div class="chip-compare-row"><label>典型单位成本系数</label><b>×${cmos.length ? Math.min(...cmos.map(x => x.costFactor)).toFixed(2) : '—'}</b></div>
+          
             <div class="chip-compare-row"><label>画质/规格加成</label><b>${cmos.length ? '+' + Math.max(...cmos.map(x => x.quality)) : '—'}</b></div>
+          
             <div class="chip-compare-row"><label>前期投入</label><b>${moneyNumber(D.CMOS_TARGETS.ff.baseCost)} 起</b></div>
+          
             <p class="muted" style="font-size:10px;line-height:1.7;margin-top:10px">自研需要流片、验证与良率爬坡；完成后单位成本更低，且能作为发布会的核心技术叙事。</p>
+          
             <button class="btn btn-sm btn-primary mt-12" data-action="open-chip-program" data-kind="cmos">${icon('plus')} 立项自研 CMOS</button>
+          
           </div>
+          
           <div class="chip-compare-card">
+          
             <div class="chip-compare-head"><div><div class="chip-compare-name">外购 AF 模组</div><div class="chip-compare-en">OFF-THE-SHELF AF</div></div><span class="badge">当前</span></div>
+          
             <div class="chip-compare-row"><label>单位成本</label><b>${moneyNumber(D.AF_SYSTEMS.ai.cost)}</b></div>
+          
             <div class="chip-compare-row"><label>对焦加成</label><b>+${D.AF_SYSTEMS.ai.bonus}</b></div>
+          
             <p class="muted" style="font-size:10px;line-height:1.7;margin-top:10px">AF 模组随对焦系统一起采购，性能受供应商方案限制。</p>
+          
           </div>
+          
           <div class="chip-compare-card is-accent">
+          
             <div class="chip-compare-head"><div><div class="chip-compare-name">自研 AF 芯片</div><div class="chip-compare-en">IN-HOUSE AF ASIC</div></div><span class="badge ${af.length ? 'good' : ''}">${af.length ? af.length + ' 颗' : '未完成'}</span></div>
+          
             <div class="chip-compare-row"><label>额外对焦加成</label><b>${af.length ? '+' + Math.max(...af.map(x => x.bonus)) : '—'}</b></div>
+          
             <div class="chip-compare-row"><label>单位成本变化</label><b>${af.length ? Math.min(...af.map(x => x.costDelta)) : '—'}</b></div>
+          
             <p class="muted" style="font-size:10px;line-height:1.7;margin-top:10px">自研 AF 芯片可以把追焦算法与 NPU 做成差异化卖点，并降低长期模组成本。</p>
+          
             <button class="btn btn-sm btn-primary mt-12" data-action="open-chip-program" data-kind="af">${icon('plus')} 立项自研 AF</button>
+          
           </div>
         </div>
       `}
@@ -5983,14 +9633,22 @@
       </div>
       <div class="chip-spec-grid">
         ${isCmos ? `
+          
           <div><label>单位成本</label><b>×${Number(chip.costFactor).toFixed(2)}</b></div>
+          
           <div><label>画质加成</label><b>+${chip.quality}</b></div>
+          
           <div><label>缺陷系数</label><b>×${Number(chip.defect).toFixed(2)}</b></div>
+          
           <div><label>世代</label><b>GEN ${chip.generation}</b></div>
         ` : `
+          
           <div><label>对焦加成</label><b>+${chip.bonus}</b></div>
+          
           <div><label>模组成本</label><b>${chip.costDelta}</b></div>
+          
           <div><label>架构</label><b>${esc((D.AF_ARCHITECTURES[chip.arch] || {}).name || '—')}</b></div>
+          
           <div><label>世代</label><b>GEN ${chip.generation}</b></div>
         `}
       </div>
@@ -6081,14 +9739,21 @@
         <div class="event-draft-top"><div><div class="event-draft-name">${esc(draft.name || '未命名')}</div><div class="event-draft-cat">${esc(isCamera ? categoryData(draft.category).name : (D.LENS_TYPES[draft.lensType]?.name || '镜头'))} · ${ev.overall || '—'} / 100</div></div><span class="badge">${esc(event.scale ? event.scale.name : '未定')}</span></div>
         <div class="event-draft-plan">${icon('megaphone')} <b>${esc(event.label || '静默上市')}</b></div>
         <div class="event-draft-metrics">
+          
           <div><label>预计声量</label><b>${Math.round(event.hype || 0)}</b></div>
+          
           <div><label>媒体评分</label><b>${Math.round(event.pressScore || 0)}</b></div>
+          
           <div><label>预购</label><b>${preview.preorderUnits ? units(preview.preorderUnits) : '—'}</b></div>
+          
           <div><label>发布会成本</label><b>${event.cost ? money(event.cost) : '—'}</b></div>
         </div>
         <div class="event-draft-actions">
+          
           <button class="btn btn-sm btn-primary" data-action="open-launch-planner" data-kind="${kind}">${icon('megaphone')} 策划发布会</button>
+          
           <button class="btn btn-sm btn-secondary" data-action="launch-review" data-kind="${kind}">${icon('arrowUpRight')} 上市评审</button>
+          
           <button class="btn btn-sm btn-ghost" data-action="${isCamera ? 'resume-camera-draft' : 'resume-lens-draft'}">继续设计</button>
         </div>
       </div>
@@ -6122,7 +9787,7 @@
     return `
       ${pageHead({
         eyebrow: 'R&D CENTER / 技术研发',
-        title: '把耐心变成别人追不上的参数。',
+        title: '科研',
         sub: '技术等级决定产品参数上限、制造成本、良品率与品牌口碑。研发项目会占用实验室进度，但完成后会永久提升你的产品能力。',
         actions: `<button class="btn btn-ghost" data-action="nav" data-page="chips">${icon('cpu')} 芯片实验室</button><button class="btn btn-secondary" data-action="nav" data-page="products">产品矩阵 ${icon('arrowRight')}</button><button class="btn btn-primary" data-action="new-camera">${icon('plus')} 设计新相机</button>`
       })}
@@ -6131,7 +9796,15 @@
           
           
           
+          
+          
+          
+          
           <div class="lab-card-top">
+          
+          
+          
+          
           
           
           
@@ -6139,11 +9812,23 @@
           
           
           
+          
+          
+          
+          
             <span class="badge ${activeCount ? 'accent' : 'good'}">${activeCount ? activeCount + ' 个项目进行中' : '实验室空闲'}</span>
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -6151,7 +9836,15 @@
           
           
           
+          
+          
+          
+          
             <div class="lab-metric"><label>月度研发力</label><b>${Math.round(power)} <small>RP</small></b></div>
+          
+          
+          
+          
           
           
           
@@ -6159,7 +9852,15 @@
           
           
           
+          
+          
+          
+          
             <div class="lab-metric"><label>技术总等级</label><b>${techLevels} <small>/ 65</small></b></div>
+          
+          
+          
+          
           
           
           
@@ -6167,11 +9868,23 @@
           
           
           
+          
+          
+          
+          
           </div>
           
           
           
+          
+          
+          
+          
           <div class="progress mt-16" style="height:6px"><i style="width:${clamp((techLevels / 65) * 100, 0, 100)}%"></i></div>
+          
+          
+          
+          
           
           
           
@@ -6181,7 +9894,15 @@
           
           
           
+          
+          
+          
+          
           <div class="flex items-center justify-between"><div class="lab-title" style="font-size:14px">进行中的项目</div><span class="badge">${activeCount}/3 实验室槽位</span></div>
+          
+          
+          
+          
           
           
           
@@ -6189,7 +9910,15 @@
           
           
           
+          
+          
+          
+          
             ${projects.length ? projects.map(p => {
+          
+          
+          
+          
           
           
           
@@ -6197,7 +9926,15 @@
           
           
           
+          
+          
+          
+          
               const eta = Math.max(1, Math.ceil((p.requiredPoints - p.progress) / Math.max(1, power / projects.length)));
+          
+          
+          
+          
           
           
           
@@ -6205,7 +9942,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="project-top"><div class="project-name"><span class="dot"></span>${esc(p.techName)}</div><div class="project-level">LV.${p.targetLevel}</div></div>
+          
+          
+          
+          
           
           
           
@@ -6213,7 +9958,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="project-progress-line"><span>${Math.round(p.progress)} / ${p.requiredPoints} RP</span><span>约 ${eta} 个月</span></div>
+          
+          
+          
+          
           
           
           
@@ -6221,7 +9974,15 @@
           
           
           
+          
+          
+          
+          
               </div>`;
+          
+          
+          
+          
           
           
           
@@ -6229,7 +9990,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -6242,7 +10011,15 @@
           
           
           
+          
+          
+          
+          
           const tech = D.TECHS[key];
+          
+          
+          
+          
           
           
           
@@ -6250,7 +10027,15 @@
           
           
           
+          
+          
+          
+          
           const active = projects.find(p => p.tech === key);
+          
+          
+          
+          
           
           
           
@@ -6258,7 +10043,15 @@
           
           
           
+          
+          
+          
+          
           const target = level + 1;
+          
+          
+          
+          
           
           
           
@@ -6266,7 +10059,15 @@
           
           
           
+          
+          
+          
+          
           const eta = max ? null : E.projectEta(game, key);
+          
+          
+          
+          
           
           
           
@@ -6274,7 +10075,15 @@
           
           
           
+          
+          
+          
+          
           return `<div class="tech-card ${active ? 'is-researching' : ''} ${max ? 'is-max' : ''}">
+          
+          
+          
+          
           
           
           
@@ -6282,7 +10091,15 @@
           
           
           
+          
+          
+          
+          
               <div class="tech-icon">${icon(key === 'sensor' ? 'cpu' : key === 'video' ? 'video' : key === 'af' ? 'target' : key === 'ibis' ? 'zap' : key === 'color' ? 'palette' : key === 'codec' ? 'film' : key === 'cooling' ? 'refresh' : key === 'battery' ? 'power' : key === 'screen' ? 'eye' : key === 'optics' ? 'lens' : key === 'material' ? 'layers' : key === 'modular' ? 'box' : 'sliders')}</div>
+          
+          
+          
+          
           
           
           
@@ -6290,7 +10107,15 @@
           
           
           
+          
+          
+          
+          
               <div class="tech-level">${[1, 2, 3, 4, 5].map(n => `<span class="level-pip ${level >= n ? 'is-on' : ''}"></span>`).join('')}</div>
+          
+          
+          
+          
           
           
           
@@ -6298,7 +10123,15 @@
           
           
           
+          
+          
+          
+          
             <div class="tech-desc">${esc(tech.desc)}</div>
+          
+          
+          
+          
           
           
           
@@ -6306,11 +10139,23 @@
           
           
           
+          
+          
+          
+          
             ${max ? `<div class="tech-level-actions"><span class="badge good">${icon('check')} 已达上限</span><span class="tech-cost">无需继续投入</span></div>` : active ? `<div class="project-progress-line mt-12"><span>研发中 ${Math.round(active.progress / active.requiredPoints * 100)}%</span><span>${Math.round(active.progress)} / ${active.requiredPoints} RP</span></div><div class="progress mt-8"><i style="width:${active.progress / active.requiredPoints * 100}%"></i></div>` : `<div class="tech-next"><div class="tech-cost">预算 <b>${money(nextCost)}</b>${eta ? `${eta.points} RP · 预计 ${eta.months} 个月` : ''}</div><button class="btn btn-sm ${canStart ? 'btn-primary' : 'btn-secondary'}" data-action="start-research" data-tech="${key}" ${canStart ? '' : 'disabled'}>${canStart ? '立项研发' : activeCount >= 3 ? '实验室已满' : '现金不足'}</button></div><div class="tech-locked-note">${nextCost > c.cash ? '需要更多现金或减少其他投入。' : ''}</div>`}
           
           
           
+          
+          
+          
+          
             <div class="tech-level-actions"><span class="tech-cost">下一个等级：<span style="color:var(--faint)">${esc(tech.levels[Math.min(4, level)])}</span></span></div>
+          
+          
+          
+          
           
           
           
@@ -6345,7 +10190,15 @@
           
           
           
+          
+          
+          
+          
           <div class="market-toolbar">
+          
+          
+          
+          
           
           
           
@@ -6353,7 +10206,15 @@
           
           
           
+          
+          
+          
+          
               <div class="filter-chips">
+          
+          
+          
+          
           
           
           
@@ -6361,7 +10222,15 @@
           
           
           
+          
+          
+          
+          
                 ${D.CATEGORY_ORDER.map(id => `<button class="filter-chip ${UI.marketCategory === id ? 'is-active' : ''}" data-action="market-filter" data-filter="${id}">${esc(D.CATEGORIES[id].short)}</button>`).join('')}
+          
+          
+          
+          
           
           
           
@@ -6369,7 +10238,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -6377,7 +10254,15 @@
           
           
           
+          
+          
+          
+          
               <button class="${UI.marketSort === 'new' ? 'is-active' : ''}" data-action="market-sort" data-sort="new">最新</button>
+          
+          
+          
+          
           
           
           
@@ -6385,7 +10270,15 @@
           
           
           
+          
+          
+          
+          
               <button class="${UI.marketSort === 'price' ? 'is-active' : ''}" data-action="market-sort" data-sort="price">价格</button>
+          
+          
+          
+          
           
           
           
@@ -6393,7 +10286,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -6401,7 +10302,15 @@
           
           
           
+          
+          
+          
+          
             <thead><tr><th>机型</th><th>品牌</th><th>品类</th><th>定价</th><th>媒体评分</th><th>上市时间</th><th>规格印象</th></tr></thead>
+          
+          
+          
+          
           
           
           
@@ -6409,7 +10318,15 @@
           
           
           
+          
+          
+          
+          
               <td class="name-cell">${esc(p.name)}${p.age <= 3 ? ' <span class="badge accent">NEW</span>' : ''}</td>
+          
+          
+          
+          
           
           
           
@@ -6417,7 +10334,15 @@
           
           
           
+          
+          
+          
+          
               <td>${esc(categoryData(p.category).short)}</td>
+          
+          
+          
+          
           
           
           
@@ -6425,7 +10350,15 @@
           
           
           
+          
+          
+          
+          
               <td class="num">${p.score}</td>
+          
+          
+          
+          
           
           
           
@@ -6433,7 +10366,15 @@
           
           
           
+          
+          
+          
+          
               <td><span class="faint" style="font-size:8px">${esc(p.res || '')}${p.fps ? ' ' + p.fps + 'p' : ''} · ${p.mp}MP</span></td>
+          
+          
+          
+          
           
           
           
@@ -6448,7 +10389,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -6456,7 +10405,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body">${renderShareBars(snap, 8)}</div>
+          
+          
+          
+          
           
           
           
@@ -6464,7 +10421,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -6472,7 +10437,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -6480,7 +10453,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="category-market-row" style="border-bottom:1px solid var(--line);padding-bottom:6px"><span class="mini-label">品类</span><span class="mini-label">月需求</span><span class="mini-label">竞争压力 / 你的销量</span></div>
+          
+          
+          
+          
           
           
           
@@ -6488,7 +10469,15 @@
           
           
           
+          
+          
+          
+          
                   <div class="category-market-name"><span>${esc(D.CATEGORIES[c.id].code)}</span><span style="color:var(--text-soft);font-family:var(--font-ui);font-size:9px">${esc(c.name)}</span><span>${c.playerUnits ? c.playerUnits.toLocaleString('zh-CN') + ' 台' : '—'}</span></div>
+          
+          
+          
+          
           
           
           
@@ -6496,7 +10485,15 @@
           
           
           
+          
+          
+          
+          
                   <div class="category-market-pressure"><span class="pressure-dot" style="background:${c.pressure > 90 ? 'var(--bad)' : c.pressure > 75 ? 'var(--accent)' : 'var(--good)'}"></span>${Math.min(100, Math.round(c.pressure))} / 100 <span style="color:var(--faint)">· ${c.playerUnits.toLocaleString('zh-CN')} 台</span></div>
+          
+          
+          
+          
           
           
           
@@ -6504,11 +10501,23 @@
           
           
           
+          
+          
+          
+          
               </div>
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -6518,7 +10527,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -6526,7 +10543,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -6534,7 +10559,15 @@
           
           
           
+          
+          
+          
+          
               <div class="metric-row"><label>活跃 AI 机型</label><b>${aiProducts.length} 款</b></div>
+          
+          
+          
+          
           
           
           
@@ -6542,7 +10575,15 @@
           
           
           
+          
+          
+          
+          
               <div class="metric-row"><label>你的市场份额</label><b>${(game.company.share || 0).toFixed(1)}%</b></div>
+          
+          
+          
+          
           
           
           
@@ -6550,7 +10591,15 @@
           
           
           
+          
+          
+          
+          
               <div class="metric-row"><label>市场平均竞争压力</label><b>${Math.round(avgPressure)} / 100</b></div>
+          
+          
+          
+          
           
           
           
@@ -6558,11 +10607,23 @@
           
           
           
+          
+          
+          
+          
           </div>
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -6570,7 +10631,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -6578,7 +10647,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -6586,7 +10663,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -6594,7 +10679,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -6602,7 +10695,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -6613,7 +10714,7 @@
     return `
       ${pageHead({
         eyebrow: 'MARKET INTELLIGENCE / 市场情报',
-        title: '市场不会等你准备好。',
+        title: '市场份额占比',
         sub: '追踪分品类需求、竞品机型、价格变化和市场趋势。真正的产品定位，是在别人的产品已经存在的前提下做出的选择。',
         actions: `<button class="btn btn-secondary" data-action="nav" data-page="marketing">${icon('megaphone')} 营销中心</button><button class="btn btn-primary" data-action="new-camera">${icon('plus')} 设计新相机</button>`
       })}
@@ -6629,11 +10730,23 @@
           
           
           
+          
+          
+          
+          
           <button class="tab ${tab === 'overview' ? 'is-active' : ''}" data-action="market-tab" data-tab="overview">市场格局</button>
           
           
           
+          
+          
+          
+          
           <button class="tab ${tab === 'competitors' ? 'is-active' : ''}" data-action="market-tab" data-tab="competitors">竞品机型 <span class="tab-badge">${aiProducts.length}</span></button>
+          
+          
+          
+          
           
           
           
@@ -6686,7 +10799,15 @@
           
           
           
+          
+          
+          
+          
           <div class="eyebrow">BRAND PULSE / ${E.monthShort(game.monthIndex)}</div>
+          
+          
+          
+          
           
           
           
@@ -6694,7 +10815,15 @@
           
           
           
+          
+          
+          
+          
           <p>${c.awareness < 30 ? '品牌仍是行业里的陌生人。每一次发布与投放都在扩大你的可见度。' : c.awareness < 65 ? '你已经拥有可被记住的名字。现在要把它转化为稳定的信任和购买理由。' : '你已经是行业里无法忽视的品牌。下一步是保持热度，并让品牌溢价被产品力支撑。'}</p>
+          
+          
+          
+          
           
           
           
@@ -6702,7 +10831,15 @@
           
           
           
+          
+          
+          
+          
             <div class="pulse-metric"><label>品牌认知</label><b>${c.awareness.toFixed(1)}</b><span>/ 100</span></div>
+          
+          
+          
+          
           
           
           
@@ -6710,7 +10847,15 @@
           
           
           
+          
+          
+          
+          
             <div class="pulse-metric"><label>品牌关注者</label><b>${(c.fans || 0).toLocaleString('zh-CN')}</b><span>人</span></div>
+          
+          
+          
+          
           
           
           
@@ -6718,11 +10863,23 @@
           
           
           
+          
+          
+          
+          
           </div>
           
           
           
+          
+          
+          
+          
           <div class="progress mt-16"><i style="width:${clamp(c.awareness, 0, 100)}%"></i></div>
+          
+          
+          
+          
           
           
           
@@ -6732,7 +10889,15 @@
           
           
           
+          
+          
+          
+          
           <div class="flex items-center justify-between"><div><div class="eyebrow">ALWAYS-ON BUDGET</div><div style="font-size:14px;font-weight:600;margin-top:4px">月度品牌广告预算</div></div><span class="badge accent">${money(budget)} / 月</span></div>
+          
+          
+          
+          
           
           
           
@@ -6740,7 +10905,15 @@
           
           
           
+          
+          
+          
+          
           <div class="budget-slider-row">
+          
+          
+          
+          
           
           
           
@@ -6748,7 +10921,15 @@
           
           
           
+          
+          
+          
+          
             <input type="range" min="0" max="50000000" step="500000" value="${budget}" data-marketing-budget style="--pct:${clamp(budget / 50000000 * 100, 0, 100)}%">
+          
+          
+          
+          
           
           
           
@@ -6756,7 +10937,15 @@
           
           
           
+          
+          
+          
+          
             <div class="budget-presets">
+          
+          
+          
+          
           
           
           
@@ -6764,11 +10953,23 @@
           
           
           
+          
+          
+          
+          
             </div>
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -6782,7 +10983,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel-header"><div><div class="panel-title">${icon('users')} 受众审美匹配</div><div class="panel-sub">在售产品与各用户群体的外形/功能匹配度，按销量加权。</div></div></div>
+          
+          
+          
+          
           
           
           
@@ -6790,7 +10999,15 @@
           
           
           
+          
+          
+          
+          
             <div class="audience-panel">
+          
+          
+          
+          
           
           
           
@@ -6798,11 +11015,23 @@
           
           
           
+          
+          
+          
+          
             </div>
           
           
           
+          
+          
+          
+          
             <div class="callout mt-16"><div class="callout-title">${icon('info')} 审美不是唯一变量</div>不同用户对重量、按键、屏幕和价格同样敏感。一个高匹配的外观无法弥补完全错误的产品规格。</div>
+          
+          
+          
+          
           
           
           
@@ -6812,7 +11041,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel-header"><div><div class="panel-title">${icon('star')} 产品口碑表现</div><div class="panel-sub">媒体评分与上期销量的组合，是最真实的产品反馈。</div></div><button class="link-btn" data-action="nav" data-page="products">产品中心 →</button></div>
+          
+          
+          
+          
           
           
           
@@ -6820,11 +11057,23 @@
           
           
           
+          
+          
+          
+          
             ${topProducts.length ? `<div class="reception-list">${topProducts.map(p => `<div class="reception-row"><div class="reception-thumb is-photo">${photoImg(photoForProduct(p), '', p.name)}</div><div class="reception-info"><b>${esc(p.name)}</b><span>${esc(categoryData(p.category).name)} · ${(p.lastUnits || 0).toLocaleString('zh-CN')} 台 · ${esc(p.pros[0] || '')}</span></div><span class="reception-score">${p.overall}</span></div>`).join('')}</div>` : '<div class="empty-inline">还没有在售相机。营销只能放大真实存在的产品。</div>'}
           
           
           
+          
+          
+          
+          
             <div class="callout mt-12"><div class="callout-title">${icon('megaphone')} 口碑修复</div>如果品控或舆论出现问题，「口碑修复」会比任何广告都更有效。先从产品本身解决问题，再用营销沟通。</div>
+          
+          
+          
+          
           
           
           
@@ -6876,7 +11125,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -6884,7 +11141,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -6892,7 +11157,15 @@
           
           
           
+          
+          
+          
+          
                 ${Object.values(D.ODM_PARTNERS).filter(p => p.id !== 'self').map(p => `<button class="odm-card ${man.mode === 'partner' && c.odmPartner === p.id ? 'is-active' : ''}" data-action="set-odm" data-odm="${p.id}">
+          
+          
+          
+          
           
           
           
@@ -6900,7 +11173,15 @@
           
           
           
+          
+          
+          
+          
                   <div class="odm-stats"><span>产能 <b>${p.capacity.toLocaleString('zh-CN')} 台/月</b></span><span>成本系数 <b>${p.cost.toFixed(2)}</b></span><span>质量系数 <b>${p.quality.toFixed(2)}</b></span><span>月费 <b>${money(p.fee)}</b></span></div>
+          
+          
+          
+          
           
           
           
@@ -6908,7 +11189,15 @@
           
           
           
+          
+          
+          
+          
               </div>
+          
+          
+          
+          
           
           
           
@@ -6916,7 +11205,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="factory-top"><div><div class="factory-name">自有工厂 · ${esc(D.FACTORY_LEVELS[c.ownFactoryLevel || 0].name)}</div><div class="factory-desc">${esc(D.FACTORY_LEVELS[c.ownFactoryLevel || 0].desc)}</div></div><button class="btn btn-sm ${c.manufacturingMode === 'self' ? 'btn-primary' : 'btn-secondary'}" data-action="set-self-manufacturing" ${!c.ownFactoryLevel ? 'disabled' : ''}>${c.manufacturingMode === 'self' ? '正在使用' : '切换到自有产线'}</button></div>
+          
+          
+          
+          
           
           
           
@@ -6924,7 +11221,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="flex justify-between items-center mt-8"><span class="faint" style="font-size:8px">${c.ownFactoryLevel ? '产能 ' + D.FACTORY_LEVELS[c.ownFactoryLevel].capacity.toLocaleString('zh-CN') + ' 台/月 · 成本系数 ' + D.FACTORY_LEVELS[c.ownFactoryLevel].cost : '尚未拥有自有工厂'}${c.ownFactoryLevel < 3 ? ' · 升级费用 ' + money(D.FACTORY_LEVELS[c.ownFactoryLevel].upgradeCost) : ''}</span>${c.ownFactoryLevel < 3 ? `<button class="btn btn-sm btn-secondary" data-action="upgrade-factory" ${c.cash < D.FACTORY_LEVELS[c.ownFactoryLevel].upgradeCost ? 'disabled' : ''}>${icon('plus')} 升级产线</button>` : '<span class="badge good">最高等级</span>'}</div>
+          
+          
+          
+          
           
           
           
@@ -6932,7 +11237,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -6940,7 +11253,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -6948,7 +11269,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -6956,7 +11285,15 @@
           
           
           
+          
+          
+          
+          
               <div class="progress mb-12"><i style="width:${capacity ? clamp(forecast / capacity * 100, 0, 100) : 0}%"></i></div>
+          
+          
+          
+          
           
           
           
@@ -6964,7 +11301,15 @@
           
           
           
+          
+          
+          
+          
               <div class="metric-row"><label>预计缺陷质量系数</label><b>${man.quality.toFixed(2)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -6972,7 +11317,15 @@
           
           
           
+          
+          
+          
+          
               <div class="metric-row"><label>库存估值</label><b>${money(E.inventoryValue(game))}</b></div>
+          
+          
+          
+          
           
           
           
@@ -6980,7 +11333,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -6990,7 +11351,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel-header"><div><div class="panel-title">${icon('sliders')} 生产计划</div><div class="panel-sub">自动模式会在每次结算时根据需求预测补货；手动模式下按输入数量生产。</div></div><span class="badge">${active.length} 个在售产品</span></div>
+          
+          
+          
+          
           
           
           
@@ -6998,7 +11367,15 @@
           
           
           
+          
+          
+          
+          
             ${active.length ? `<div class="production-row header"><span>产品</span><span>预测需求</span><span>库存</span><span>自动补货</span><span>手动月产量</span></div><div class="production-list">${active.map(p => `<div class="production-row">
+          
+          
+          
+          
           
           
           
@@ -7006,7 +11383,15 @@
           
           
           
+          
+          
+          
+          
               <div class="production-cell">${(p.lastForecast || 0).toLocaleString('zh-CN')}</div>
+          
+          
+          
+          
           
           
           
@@ -7014,7 +11399,15 @@
           
           
           
+          
+          
+          
+          
               <div class="production-cell"><button class="toggle ${p.autoProduction ? 'is-on' : ''}" data-action="toggle-auto-production" data-id="${attr(p.id)}"></button></div>
+          
+          
+          
+          
           
           
           
@@ -7022,11 +11415,23 @@
           
           
           
+          
+          
+          
+          
             </div>`).join('')}</div>` : '<div class="empty-inline">还没有在售产品，暂无生产计划。</div>'}
           
           
           
+          
+          
+          
+          
             <div class="callout mt-12"><div class="callout-title">${icon('truck')} 供货节奏</div>首批库存在上市时扣除。之后每个月的备货会占用现金；如果需求低于预期，库存会挤压现金流。不要让「以为会卖爆」变成库存危机。</div>
+          
+          
+          
+          
           
           
           
@@ -7039,7 +11444,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel-header"><div><div class="panel-title">${icon('cpu')} 传感器供应商</div><div class="panel-sub">供应商决定传感器成本、质量与可获得的技术上限。变更仅影响之后的新产品。</div></div><span class="badge">${esc(E.getSensorSupplier(c).name)}</span></div>
+          
+          
+          
+          
           
           
           
@@ -7047,7 +11460,15 @@
           
           
           
+          
+          
+          
+          
             <div class="supplier-grid">${Object.values(D.SENSOR_SUPPLIERS).filter(s => s.id !== 'inhouse').map(s => {
+          
+          
+          
+          
           
           
           
@@ -7055,7 +11476,15 @@
           
           
           
+          
+          
+          
+          
               return `<button class="supplier-card ${c.sensorSupplier === s.id ? 'is-active' : ''} ${locked ? 'is-locked' : ''}" data-action="select-supplier" data-supplier="${s.id}" ${locked ? 'disabled' : ''}>
+          
+          
+          
+          
           
           
           
@@ -7063,7 +11492,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="supplier-en">${esc(s.en)}</div>
+          
+          
+          
+          
           
           
           
@@ -7071,7 +11508,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="supplier-factors"><span>成本 <b>×${s.cost.toFixed(2)}</b></span><span>质量 <b>×${s.quality.toFixed(2)}</b></span><span>交期 <b>${s.lead}周</b></span></div>
+          
+          
+          
+          
           
           
           
@@ -7079,7 +11524,15 @@
           
           
           
+          
+          
+          
+          
             }).join('')}</div>
+          
+          
+          
+          
           
           
           
@@ -7089,7 +11542,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel-header"><div><div class="panel-title">${icon('shield')} 供应风险与库存</div><div class="panel-sub">更高品质的供应商通常更贵，也更难拿到配额。</div></div></div>
+          
+          
+          
+          
           
           
           
@@ -7097,7 +11558,15 @@
           
           
           
+          
+          
+          
+          
             <div class="metric-row"><label>当前供应商质量</label><b>×${E.getSensorSupplier(c).quality.toFixed(2)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -7105,7 +11574,15 @@
           
           
           
+          
+          
+          
+          
             <div class="metric-row"><label>供应交期</label><b>${E.getSensorSupplier(c).lead} 周</b></div>
+          
+          
+          
+          
           
           
           
@@ -7113,11 +11590,23 @@
           
           
           
+          
+          
+          
+          
             <div class="metric-row"><label>在售产品数量</label><b>${active.length}</b></div>
           
           
           
+          
+          
+          
+          
             <div class="callout accent mt-12"><div class="callout-title">${icon('cpu')} 自研 CMOS / AF 芯片</div>自研不再是这里的一次性开关：请在「芯片实验室」立项，完成流片与验证后，在相机设计里选择「自研」。<button class="link-btn ml-8" data-action="nav" data-page="chips">前往芯片实验室 →</button></div>
+          
+          
+          
+          
           
           
           
@@ -7130,11 +11619,23 @@
           
           
           
+          
+          
+          
+          
           <div class="inventory-grid">
           
           
           
+          
+          
+          
+          
             ${active.map(p => `<div class="inventory-card"><label>${esc(p.name)}</label><b>${(p.stock || 0).toLocaleString('zh-CN')} 件</b><span>库存价值 ${money((p.stock || 0) * p.unitCost)} · 单位成本 ${moneyNumber(p.unitCost)}</span></div>`).join('') || '<div class="empty-inline">暂无库存。</div>'}
+          
+          
+          
+          
           
           
           
@@ -7150,7 +11651,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel-header"><div><div class="panel-title">${icon('users')} 团队结构</div><div class="panel-sub">人不是成本项，而是产品能力和组织速度的来源。</div></div><div class="panel-actions"><span class="badge">${total} 人</span><span class="badge accent">${money(salary)} / 月</span></div></div>
+          
+          
+          
+          
           
           
           
@@ -7158,7 +11667,15 @@
           
           
           
+          
+          
+          
+          
             <div class="team-grid">
+          
+          
+          
+          
           
           
           
@@ -7166,7 +11683,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="team-icon">${icon(role.icon === 'chip' ? 'cpu' : role.icon === 'pen' ? 'pen' : role.icon === 'shield' ? 'shield' : role.icon === 'spark' ? 'sparkles' : 'chart')}</div>
+          
+          
+          
+          
           
           
           
@@ -7174,7 +11699,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="team-desc">${esc(role.desc)}</div>
+          
+          
+          
+          
           
           
           
@@ -7182,7 +11715,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="team-actions"><button class="btn btn-sm btn-ghost" data-action="fire-staff" data-role="${role.id}" ${!c.staff[role.id] ? 'disabled' : ''}>${icon('minus')} 解雇</button><button class="btn btn-sm btn-secondary" data-action="hire-staff" data-role="${role.id}">${icon('plus')} 招聘</button></div>
+          
+          
+          
+          
           
           
           
@@ -7190,11 +11731,23 @@
           
           
           
+          
+          
+          
+          
               </div>`).join('')}
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -7204,7 +11757,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel"><div class="panel-header"><div><div class="panel-title">${icon('flask')} 研发能力</div></div></div><div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -7212,7 +11773,15 @@
           
           
           
+          
+          
+          
+          
             <div class="metric-row"><label>月度研发力</label><b>${Math.round(E.researchPower(c))} RP</b></div>
+          
+          
+          
+          
           
           
           
@@ -7220,7 +11789,15 @@
           
           
           
+          
+          
+          
+          
             <div class="metric-row"><label>外形完成度加成</label><b>+${Math.round(clamp(2 + Math.sqrt(c.staff.designers) * 1.25, 2, 11))} 分</b></div>
+          
+          
+          
+          
           
           
           
@@ -7228,7 +11805,15 @@
           
           
           
+          
+          
+          
+          
           </div></div>
+          
+          
+          
+          
           
           
           
@@ -7236,7 +11821,15 @@
           
           
           
+          
+          
+          
+          
             <div class="metric-row"><label>市场营销</label><b>${c.staff.marketing} 人</b></div>
+          
+          
+          
+          
           
           
           
@@ -7244,7 +11837,15 @@
           
           
           
+          
+          
+          
+          
             <div class="metric-row"><label>渠道与销售</label><b>${c.staff.sales} 人</b></div>
+          
+          
+          
+          
           
           
           
@@ -7252,7 +11853,15 @@
           
           
           
+          
+          
+          
+          
             <div class="callout mt-12"><div class="callout-title">${icon('info')} 招聘成本</div>招聘需要支付约 1.6 个月薪资的猎头与入职成本，解雇需要支付 1 个月薪资作为离职补偿。</div>
+          
+          
+          
+          
           
           
           
@@ -7262,7 +11871,15 @@
           
           
           
+          
+          
+          
+          
           <div><div class="mini-label">月度人力总成本</div><div style="font-family:var(--font-display);font-size:26px;letter-spacing:-.03em;margin-top:3px">${money(salary)}</div><div class="faint" style="font-size:8px">${total} 名员工 · 不含代工与固定运营成本</div></div>
+          
+          
+          
+          
           
           
           
@@ -7272,7 +11889,7 @@
     return `
       ${pageHead({
         eyebrow: 'OPERATIONS / 运营中枢',
-        title: '把好产品，真的造出来。',
+        title: '合作方',
         sub: '从代工与工厂选择、传感器供应到团队配置与产能规划。产品定义得再好，最终也要通过真实的制造与组织能力落地。',
         actions: `<button class="btn btn-secondary" data-action="nav" data-page="finance">${icon('wallet')} 财务中心</button><button class="btn btn-primary" data-action="advance-month">${icon('play')} 推进一月</button>`
       })}
@@ -7313,7 +11930,7 @@
     return `
       ${pageHead({
         eyebrow: 'FINANCE / 财务中心',
-        title: '现金是公司的氧气。',
+        title: '财政数据',
         sub: '收入不是利润，利润不是现金，现金也不是自由。管理研发、备货、营销与贷款之间的现金流节奏。',
         actions: `<button class="btn btn-secondary" data-action="nav" data-page="operations">${icon('factory')} 运营与产能</button><button class="btn btn-primary" data-action="advance-month">${icon('play')} 推进一月</button>`
       })}
@@ -7328,7 +11945,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -7336,7 +11961,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body"><div class="chart-lg">${lineChart([
+          
+          
+          
+          
           
           
           
@@ -7344,7 +11977,15 @@
           
           
           
+          
+          
+          
+          
               { values: profitValues, color: 'var(--good)', width: 1.4 }
+          
+          
+          
+          
           
           
           
@@ -7352,11 +11993,23 @@
           
           
           
+          
+          
+          
+          
           </div>
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -7364,7 +12017,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -7372,7 +12033,15 @@
           
           
           
+          
+          
+          
+          
                 <div><table class="statement-table">
+          
+          
+          
+          
           
           
           
@@ -7380,7 +12049,15 @@
           
           
           
+          
+          
+          
+          
                   <tr class="is-sub"><td>其中套机镜头收入</td><td>${money(r.kitRevenue)}</td></tr>
+          
+          
+          
+          
           
           
           
@@ -7388,7 +12065,15 @@
           
           
           
+          
+          
+          
+          
                   <tr><td>渠道分成</td><td>-${money(r.channelFee)}</td></tr>
+          
+          
+          
+          
           
           
           
@@ -7396,11 +12081,23 @@
           
           
           
+          
+          
+          
+          
                   <tr class="is-total"><td>毛利润</td><td>${money(r.grossProfit)}</td></tr>
           
           
           
+          
+          
+          
+          
                 </table></div>
+          
+          
+          
+          
           
           
           
@@ -7408,7 +12105,15 @@
           
           
           
+          
+          
+          
+          
                   <tr><td>员工薪资</td><td>-${money(r.payroll)}</td></tr>
+          
+          
+          
+          
           
           
           
@@ -7416,7 +12121,15 @@
           
           
           
+          
+          
+          
+          
                   <tr><td>品牌营销</td><td>-${money(r.marketing)}</td></tr>
+          
+          
+          
+          
           
           
           
@@ -7424,7 +12137,15 @@
           
           
           
+          
+          
+          
+          
                   <tr><td>售后与保修</td><td>-${money(r.warranty)}</td></tr>
+          
+          
+          
+          
           
           
           
@@ -7432,7 +12153,15 @@
           
           
           
+          
+          
+          
+          
                   <tr><td>企业所得税 (${(taxRate * 100).toFixed(0)}%)</td><td>-${money(r.tax)}</td></tr>
+          
+          
+          
+          
           
           
           
@@ -7440,7 +12169,15 @@
           
           
           
+          
+          
+          
+          
                 </table></div>
+          
+          
+          
+          
           
           
           
@@ -7448,7 +12185,15 @@
           
           
           
+          
+          
+          
+          
               <div class="grid-3 mt-16">
+          
+          
+          
+          
           
           
           
@@ -7456,7 +12201,15 @@
           
           
           
+          
+          
+          
+          
                 <div class="metric-row"><label>期末现金</label><b>${money(r.cashEnd)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -7464,11 +12217,23 @@
           
           
           
+          
+          
+          
+          
               </div>` : '<div class="empty-inline">推进一个月后查看第一份损益表。</div>'}
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -7476,7 +12241,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -7484,7 +12257,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body panel-body tight" style="padding:0 18px 18px">
+          
+          
+          
+          
           
           
           
@@ -7492,7 +12273,15 @@
           
           
           
+          
+          
+          
+          
                 <thead><tr><th>月份</th><th>现金</th><th>营收</th><th>净利润</th><th>相机销量</th><th>份额</th><th>负债</th></tr></thead>
+          
+          
+          
+          
           
           
           
@@ -7500,11 +12289,23 @@
           
           
           
+          
+          
+          
+          
               </table></div>
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -7514,7 +12315,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -7522,7 +12331,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -7530,7 +12347,15 @@
           
           
           
+          
+          
+          
+          
               <div class="metric-row"><label>可用额度</label><b>${money(available)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -7538,7 +12363,15 @@
           
           
           
+          
+          
+          
+          
               <div class="metric-row"><label>月利率</label><b>${(c.loanRate * 100).toFixed(2)}%</b></div>
+          
+          
+          
+          
           
           
           
@@ -7546,7 +12379,15 @@
           
           
           
+          
+          
+          
+          
               <div class="metric-row mt-12"><label>本月利息成本</label><b>${money(fixed.interest)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -7554,7 +12395,15 @@
           
           
           
+          
+          
+          
+          
                 <input class="text-input" type="number" id="loan-amount" min="100000" step="100000" placeholder="输入贷款金额，例如 5000000">
+          
+          
+          
+          
           
           
           
@@ -7562,7 +12411,15 @@
           
           
           
+          
+          
+          
+          
               </div>
+          
+          
+          
+          
           
           
           
@@ -7570,7 +12427,15 @@
           
           
           
+          
+          
+          
+          
                 ${[10000000, 50000000, 200000000].map(v => `<button class="btn btn-sm btn-ghost" data-action="take-loan" data-amount="${v}" ${available < v ? 'disabled' : ''}>+${money(v)}</button>`).join('')}
+          
+          
+          
+          
           
           
           
@@ -7578,7 +12443,15 @@
           
           
           
+          
+          
+          
+          
               <div class="divider my-12" style="margin:12px 0"></div>
+          
+          
+          
+          
           
           
           
@@ -7586,7 +12459,15 @@
           
           
           
+          
+          
+          
+          
               <div class="form-help mt-8">偿还金额受现金余额限制。贷款会进入现金但增加负债与每月利息。</div>
+          
+          
+          
+          
           
           
           
@@ -7594,11 +12475,23 @@
           
           
           
+          
+          
+          
+          
           </div>
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -7606,7 +12499,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -7614,7 +12515,15 @@
           
           
           
+          
+          
+          
+          
               <div class="metric-row"><label>库存资产</label><b>${money(E.inventoryValue(game))}</b></div>
+          
+          
+          
+          
           
           
           
@@ -7622,7 +12531,15 @@
           
           
           
+          
+          
+          
+          
               <div class="metric-row"><label>产品组合价值（估算）</label><b>${money([...activeProducts(), ...activeLenses()].length * 18000000)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -7630,11 +12547,23 @@
           
           
           
+          
+          
+          
+          
               <div class="callout accent mt-12"><div class="callout-title">${icon('info')} 一次性投入</div>${oneOffs.length ? oneOffs.slice(-4).map(o => `${esc(o.label)} ${money(o.amount)}`).join('<br>') : '本月尚未发生研发、招聘、营销或工装类一次性投入。'}</div>
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -7642,7 +12571,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel">
+          
+          
+          
+          
           
           
           
@@ -7650,7 +12587,15 @@
           
           
           
+          
+          
+          
+          
             <div class="panel-body">
+          
+          
+          
+          
           
           
           
@@ -7658,7 +12603,15 @@
           
           
           
+          
+          
+          
+          
               <div class="metric-row"><label>可用月数</label><b>${c.cash > 0 ? (r && r.netProfit > 0 ? '正循环' : Math.floor(c.cash / Math.max(1, fixedTotal)) + ' 个月') : '0 个月'}</b></div>
+          
+          
+          
+          
           
           
           
@@ -7666,11 +12619,23 @@
           
           
           
+          
+          
+          
+          
               <div class="finance-note mt-12">${icon('info')}<div>研发预算、首批库存和营销战役会在发生时就减少现金，但库存与工装不会立即进入当月损益。请同时关注现金余额和利润表。</div></div>
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -7682,22 +12647,103 @@
   }
 
   // ---------- settings ----------
+  function renderAdvisorPage() {
+    const team = renderTeamPanel() || '<div class="empty-inline">顾问模块未加载。</div>';
+    return `
+      ${pageHead({
+        eyebrow: 'ADVISORS / 顾问团队',
+        title: '能同时推进几条线，取决于你雇了谁。',
+        sub: '三个槽位各聘一位。候选可以换，但要付解约金，旧人还会进入 6 个月冷却。',
+        actions: `<button class="btn btn-secondary" data-action="nav" data-page="overview">${icon('arrowLeft')} 返回总览</button>`
+      })}
+      ${team}
+    `;
+  }
+
+  function renderStaffPage() {
+    const S = window.FRAME_STAFF;
+    if (!S) return '<div class="empty-inline">员工模块未加载。</div>';
+    S.ensure(game);
+    const t = S.total(game);
+    const eff = S.effMul(game);
+    const avgMorale = S.moraleAvg(game);
+
+    const bars = S.DEPTS.map(function (d) {
+      const x = game.staff[d.id];
+      const pct = Math.max(3, Math.min(100, x.morale));
+      const tone = x.morale >= 70 ? '#7fb069' : (x.morale >= 50 ? '#d8a65a' : '#c85a4a');
+      return `<div class="st-row">
+        <div class="st-row-main">
+          <div class="st-name">${d.name}</div>
+          <div class="st-num"><b>${x.head.toLocaleString('zh-CN')}</b> 人</div>
+          <div class="st-bar"><i style="width:${pct}%;background:${tone}"></i></div>
+          <div class="st-morale" style="color:${tone}">${Math.round(x.morale)}</div>
+          <div class="st-pay">${(x.head * x.avg * 1e4 / 1e8).toFixed(2)} 亿/月</div>
+        </div>
+        <div class="st-row-meta">
+          <span>${d.role}</span>
+          <span class="st-btns">
+            <button class="btn btn-sm btn-secondary" data-action="staff-hire" data-dept="${d.id}">扩招 +10%</button>
+            <button class="btn btn-sm btn-secondary" data-action="staff-layoff" data-dept="${d.id}">裁员 -10%</button>
+            <button class="btn btn-sm btn-secondary" data-action="staff-raise" data-dept="${d.id}">调薪 +5%</button>
+            <button class="btn btn-sm btn-secondary" data-action="staff-train" data-dept="${d.id}">培训</button>
+          </span>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `
+      <style id="st-inline-css">
+      .panel.st-summary{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important}
+      .st-row-main{display:grid!important;grid-template-columns:96px 120px minmax(120px,1fr) 48px 96px!important;align-items:center;gap:12px}
+      .st-bar{height:5px;background:#1a1611;overflow:hidden;display:block}
+      .st-bar i{display:block;height:100%}
+      .st-row-meta{display:flex!important;justify-content:space-between;align-items:center;margin-top:7px;font-size:9.5px;color:#6f6759}
+      .st-btns{display:flex;gap:6px}
+      </style>
+      ${pageHead({
+        eyebrow: 'ORGANIZATION / 员工与团队',
+        title: '人是唯一不能被复制的东西。',
+        sub: '人数决定产能与速度，士气决定效率。裁员省钱，但会伤到所有人。',
+        actions: `<button class="btn btn-secondary" data-action="nav" data-page="overview">${icon('arrowLeft')} 返回总览</button>`
+      })}
+      <div class="panel st-summary">
+        <div class="st-kpi"><span>总人数</span><b>${t.head.toLocaleString('zh-CN')}</b></div>
+        <div class="st-kpi"><span>月薪总额</span><b>${(t.bill / 1e8).toFixed(2)} 亿</b></div>
+        <div class="st-kpi"><span>平均士气</span><b>${Math.round(avgMorale)}</b></div>
+        <div class="st-kpi"><span>效率乘数</span><b>×${eff.toFixed(2)}</b></div>
+      </div>
+      <div class="panel">
+        <h3>${icon('factory')} 部门</h3>
+        <div class="st-list">${bars}</div>
+      </div>
+    `;
+  }
+
   function renderSettingsPage() {
     const c = game.company;
     const savedAt = game.updatedAt ? new Date(game.updatedAt) : null;
     return `
       ${pageHead({
         eyebrow: 'SYSTEM / 设置与存档',
-        title: '存档、版本与游戏说明。',
+        title: '菜单、存档与设置。',
         sub: '这是单机游戏，所有进度保存在你的浏览器本地。重要进度请导出 JSON 备份。',
-        actions: `<button class="btn btn-secondary" data-action="save-game">${icon('save')} 立即保存</button><button class="btn btn-primary" data-action="export-save">${icon('download')} 导出存档</button>`
+        actions: `<button class="btn btn-secondary" data-action="nav" data-page="command">${icon('arrowLeft')} 返回指挥中心</button><button class="btn btn-secondary" data-action="help">${icon('help')} 玩法说明</button><button class="btn btn-secondary" data-action="save-game">${icon('save')} 立即保存</button><button class="btn btn-primary" data-action="export-save">${icon('download')} 导出存档</button>`
       })}
       <div class="settings-grid">
         <div class="stack-12">
           
           
           
+          
+          
+          
+          
           <div class="panel settings-card">
+          
+          
+          
+          
           
           
           
@@ -7705,11 +12751,23 @@
           
           
           
+          
+          
+          
+          
             <p>游戏会在操作后自动保存到浏览器 localStorage。清理浏览器站点数据、切换浏览器或使用隐私模式可能导致存档丢失。</p>
           
           
           
+          
+          
+          
+          
             <div class="settings-data">
+          
+          
+          
+          
           
           
           
@@ -7717,7 +12775,15 @@
           
           
           
+          
+          
+          
+          
               <div class="settings-data-row"><label>当前时间</label><b>${E.monthLabel(game.monthIndex)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -7725,7 +12791,15 @@
           
           
           
+          
+          
+          
+          
               <div class="settings-data-row"><label>最后保存</label><b>${savedAt ? savedAt.toLocaleString('zh-CN') : '—'}</b></div>
+          
+          
+          
+          
           
           
           
@@ -7733,7 +12807,15 @@
           
           
           
+          
+          
+          
+          
               <div class="settings-data-row"><label>累计销量</label><b>${units(game.stats.cameraUnits || 0)} 相机 / ${units(game.stats.lensUnits || 0)} 镜头</b></div>
+          
+          
+          
+          
           
           
           
@@ -7741,7 +12823,15 @@
           
           
           
+          
+          
+          
+          
             <div class="settings-actions">
+          
+          
+          
+          
           
           
           
@@ -7749,7 +12839,15 @@
           
           
           
+          
+          
+          
+          
               <button class="btn btn-sm btn-secondary" data-action="export-save">${icon('download')} 导出 JSON</button>
+          
+          
+          
+          
           
           
           
@@ -7757,7 +12855,15 @@
           
           
           
+          
+          
+          
+          
               <button class="btn btn-sm btn-ghost" data-action="return-title">返回标题</button>
+          
+          
+          
+          
           
           
           
@@ -7765,11 +12871,23 @@
           
           
           
+          
+          
+          
+          
           </div>
           
           
           
+          
+          
+          
+          
           <div class="panel settings-card">
+          
+          
+          
+          
           
           
           
@@ -7777,7 +12895,15 @@
           
           
           
+          
+          
+          
+          
             <p>游戏内相机产品图直接读取你提供的本地照片库：${PHOTO ? PHOTO.items.length : 0} 台真实机身、${PHOTO ? PHOTO.brands().length : 0} 个品牌，按机型自动匹配。照片保持原样，不做 AI 生成或重绘；联网补充参考图是可选项。</p>
+          
+          
+          
+          
           
           
           
@@ -7785,7 +12911,15 @@
           
           
           
+          
+          
+          
+          
             <div class="toggle-setting"><div class="toggle-setting-info"><b>3D 结构示意叠影</b><span>仅在「3D 示意」模式中叠加结构轮廓，不影响实拍商品图。</span></div><button class="toggle ${UI.artGhost ? 'is-on' : ''}" data-action="toggle-art-ghost"></button></div>
+          
+          
+          
+          
           
           
           
@@ -7793,7 +12927,15 @@
           
           
           
+          
+          
+          
+          
               <div class="settings-data-row"><label>实拍照片</label><b>${PHOTO ? PHOTO.items.length : 0} 台 / ${PHOTO ? PHOTO.brands().length : 0} 个品牌</b></div>
+          
+          
+          
+          
           
           
           
@@ -7801,7 +12943,15 @@
           
           
           
+          
+          
+          
+          
                 if (!PHOTO || !game.drafts.camera) return '按当前品牌自动匹配';
+          
+          
+          
+          
           
           
           
@@ -7809,7 +12959,15 @@
           
           
           
+          
+          
+          
+          
               })()}</b></div>
+          
+          
+          
+          
           
           
           
@@ -7817,7 +12975,15 @@
           
           
           
+          
+          
+          
+          
               <div class="settings-data-row"><label>照片匹配方式</label><b>品牌 + 机型 → 品类回退</b></div>
+          
+          
+          
+          
           
           
           
@@ -7825,7 +12991,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -7833,7 +13007,15 @@
           
           
           
+          
+          
+          
+          
               <button class="btn btn-sm btn-secondary" data-action="nav" data-page="gallery">${icon('camera')} 打开照片库</button>
+          
+          
+          
+          
           
           
           
@@ -7841,14 +13023,30 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
           </div>          
           
           
+          
+          
+          
+          
           <div class="panel settings-card">
+          
+          
+          
+          
           
           
           
@@ -7856,7 +13054,15 @@
           
           
           
+          
+          
+          
+          
             <div class="toggle-setting"><div class="toggle-setting-info"><b>减少动态效果</b><span>关闭镜头发光、页面过渡和脉冲动画。</span></div><button class="toggle ${game.settings.reducedMotion ? 'is-on' : ''}" data-action="toggle-motion"></button></div>
+          
+          
+          
+          
           
           
           
@@ -7864,7 +13070,15 @@
           
           
           
+          
+          
+          
+          
             <div class="toggle-setting"><div class="toggle-setting-info"><b>自动保存</b><span>在每次操作后写入本地存档。</span></div><span class="badge good">常开</span></div>
+          
+          
+          
+          
           
           
           
@@ -7872,7 +13086,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -7880,7 +13102,15 @@
           
           
           
+          
+          
+          
+          
             <h3>${icon('info')} 玩法速览</h3>
+          
+          
+          
+          
           
           
           
@@ -7888,7 +13118,15 @@
           
           
           
+          
+          
+          
+          
               <div class="help-step"><span class="help-num">01</span><div><b>从产品线开始</b><p>选择相机品类与目标用户，再用设计模板或自己的直觉确定外形方向。</p></div></div>
+          
+          
+          
+          
           
           
           
@@ -7896,7 +13134,15 @@
           
           
           
+          
+          
+          
+          
               <div class="help-step"><span class="help-num">03</span><div><b>研究技术，补齐上限</b><p>传感器、视频、光学、散热等 13 条技术树决定下一代产品的参数天花板。</p></div></div>
+          
+          
+          
+          
           
           
           
@@ -7904,7 +13150,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -7914,7 +13168,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel settings-card">
+          
+          
+          
+          
           
           
           
@@ -7922,7 +13184,15 @@
           
           
           
+          
+          
+          
+          
             <div class="settings-data" style="grid-template-columns:1fr 1fr">
+          
+          
+          
+          
           
           
           
@@ -7930,7 +13200,15 @@
           
           
           
+          
+          
+          
+          
               <div class="settings-data-row"><label>自研上市镜头</label><b>${game.stats.lensesLaunched || 0}</b></div>
+          
+          
+          
+          
           
           
           
@@ -7938,7 +13216,15 @@
           
           
           
+          
+          
+          
+          
               <div class="settings-data-row"><label>累计镜头销量</label><b>${units(game.stats.lensUnits || 0)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -7946,7 +13232,15 @@
           
           
           
+          
+          
+          
+          
               <div class="settings-data-row"><label>累计净利润</label><b>${money(game.stats.totalProfit || 0)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -7954,7 +13248,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -7962,7 +13264,15 @@
           
           
           
+          
+          
+          
+          
             <h3>${icon('star')} 已达成里程碑</h3>
+          
+          
+          
+          
           
           
           
@@ -7970,11 +13280,23 @@
           
           
           
+          
+          
+          
+          
               ${D.MILESTONES.map(m => { const done = game.milestones && game.milestones[m.id]; return `<div class="milestone ${done ? 'is-done' : ''}"><div class="milestone-top">${icon(done ? 'checkcircle' : m.icon || 'star')}${esc(m.name)}</div><div class="milestone-progress"><span>${esc(m.desc)}</span><span>${done ? '✓ 已达成' : esc(E.milestoneProgress(game, m.id).display)}</span></div></div>`; }).join('')}
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -7982,7 +13304,15 @@
           
           
           
+          
+          
+          
+          
           <div class="panel settings-card danger-card">
+          
+          
+          
+          
           
           
           
@@ -7990,7 +13320,15 @@
           
           
           
+          
+          
+          
+          
             <p>清除本地存档并从开局界面重新开始。此操作不可撤销。如果你只是想尝试不同路线，建议先导出当前存档。</p>
+          
+          
+          
+          
           
           
           
@@ -7998,7 +13336,15 @@
           
           
           
+          
+          
+          
+          
               <button class="btn btn-sm btn-secondary" data-action="nav" data-page="design">${icon('design')} 回到设计室</button>
+          
+          
+          
+          
           
           
           
@@ -8006,7 +13352,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -8029,7 +13383,15 @@
           
           
           
+          
+          
+          
+          
           <div class="help-block"><h5>${icon('design')} 1 · 定义产品</h5><p>选择产品线、目标人群、设计模板。相机外形、尺寸、材质、颜色、按键、屏幕、卡口、配件全部可独立设计，实时改变评价。</p></div>
+          
+          
+          
+          
           
           
           
@@ -8037,7 +13399,15 @@
           
           
           
+          
+          
+          
+          
           <div class="help-block"><h5>${icon('globe')} 3 · 上市与竞争</h5><p>设定售价、备货与营销，推进月份结算销量。AI 竞品会持续发布新品、降价并改变市场压力。用户评价会影响品牌口碑与后续需求。</p></div>
+          
+          
+          
+          
           
           
           
@@ -8047,7 +13417,15 @@
           
           
           
+          
+          
+          
+          
           <div class="modal-section-title">推荐游玩顺序</div>
+          
+          
+          
+          
           
           
           
@@ -8055,7 +13433,15 @@
           
           
           
+          
+          
+          
+          
             <div class="welcome-step"><span class="welcome-step-num">01</span><div><b>先做一台中端微单或视频机</b><p>中端产品竞争激烈但需求大，能帮助新品牌建立第一波用户和口碑。</p></div></div>
+          
+          
+          
+          
           
           
           
@@ -8063,11 +13449,23 @@
           
           
           
+          
+          
+          
+          
             <div class="welcome-step"><span class="welcome-step-num">03</span><div><b>用发布会换来第一批关注</b><p>发布会规模、形式、媒体和创作者决定首发声量、预购与首月需求。</p></div></div>
           
           
           
+          
+          
+          
+          
             <div class="welcome-step"><span class="welcome-step-num">04</span><div><b>观察第一个月的真实需求</b><p>需求超出产能就扩产，库存积压就调价或控制生产。研发下一代技术，形成产品迭代。</p></div></div>
+          
+          
+          
+          
           
           
           
@@ -8077,7 +13475,15 @@
           
           
           
+          
+          
+          
+          
           <div class="modal-section-title">快捷键与提示</div>
+          
+          
+          
+          
           
           
           
@@ -8098,7 +13504,15 @@
           
           
           
+          
+          
+          
+          
           ${D.CATEGORY_ORDER.map(id => {
+          
+          
+          
+          
           
           
           
@@ -8106,7 +13520,15 @@
           
           
           
+          
+          
+          
+          
             return `<button class="option-card" data-action="start-camera" data-category="${id}" style="padding:14px">
+          
+          
+          
+          
           
           
           
@@ -8114,7 +13536,15 @@
           
           
           
+          
+          
+          
+          
               <div class="option-card-name" style="font-size:12px;margin-top:8px">${esc(c.name)}</div>
+          
+          
+          
+          
           
           
           
@@ -8122,11 +13552,23 @@
           
           
           
+          
+          
+          
+          
               <div class="option-card-meta"><span>基准 ${moneyNumber(c.basePrice)}</span><span>默认 ${esc(D.SENSOR_FORMATS[c.sensor].name)}</span></div>
           
           
           
+          
+          
+          
+          
             </button>`;
+          
+          
+          
+          
           
           
           
@@ -8215,7 +13657,15 @@
           
           
           
+          
+          
+          
+          
           <div class="product-detail-stage is-photo ${isCamera ? 'is-real-photo' : ''}">${preview}</div>
+          
+          
+          
+          
           
           
           
@@ -8223,7 +13673,15 @@
           
           
           
+          
+          
+          
+          
           <div class="art-detail-actions">${isCamera ? `<button class="btn btn-xs btn-secondary" data-action="photo-export-product" data-id="${attr(p.id)}">${icon('download')} 下载实拍参考图</button><span class="art-render-meta">${detailPhoto && detailPhoto.crossBrand ? '跨品牌实拍外形参考' : '本机照片库 · 实拍'}</span>` : `<button class="btn btn-xs btn-secondary" data-action="art-export-product" data-id="${attr(p.id)}">${icon('download')} 导出 4K 构图示意</button><span class="art-render-meta">暂无实拍镜头图 · 3D 结构示意</span>`}</div>
+          
+          
+          
+          
           
           
           
@@ -8231,7 +13689,15 @@
           
           
           
+          
+          
+          
+          
             <div class="financial-mini"><label>上期销量</label><b>${(p.lastUnits || 0).toLocaleString('zh-CN')} ${isCamera ? '台' : '支'}</b></div>
+          
+          
+          
+          
           
           
           
@@ -8239,7 +13705,15 @@
           
           
           
+          
+          
+          
+          
             <div class="financial-mini"><label>上期需求</label><b>${(p.lastDemand || 0).toLocaleString('zh-CN')}</b></div>
+          
+          
+          
+          
           
           
           
@@ -8247,7 +13721,15 @@
           
           
           
+          
+          
+          
+          
             <div class="financial-mini"><label>单品成本</label><b>${moneyNumber(p.unitCost)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -8255,7 +13737,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -8263,11 +13753,23 @@
           
           
           
+          
+          
+          
+          
           <div class="detail-heading mt-16"><div><div class="detail-name">${esc(p.name)}</div><div class="detail-sub">${isCamera ? esc(cat.name) + ' · ' + esc(segmentData(p.targetSegment).name) : (D.LENS_TYPES[p.lensType]?.name || '镜头') + ' · ' + esc(p.mount.type) + ' 卡口'} · ${p.overall} / 100</div></div><div class="detail-price">${moneyNumber(salePrice)}<small>${kit ? '套机估算价' : '建议零售价'}</small></div></div>
           
           
           
+          
+          
+          
+          
           <div class="detail-spec-grid mt-16">${specs.map(([label, value]) => `<div class="detail-spec-row"><label>${esc(label)}</label><b>${esc(value)}</b></div>`).join('')}</div>
+          
+          
+          
+          
           
           
           
@@ -8277,7 +13779,15 @@
           
           
           
+          
+          
+          
+          
           <div class="flex gap-8 items-center" style="flex-wrap:wrap"><span class="badge ${p.status === 'active' ? 'good' : ''}">${p.status === 'active' ? '在售' : '已停产'}</span><span class="badge ${scoreTone(p.overall) || 'accent'}">${p.premiumBadge?.label || qualityTier(p.overall).label}</span>${p.isSeed ? '<span class="badge accent">继承机型</span>' : '<span class="badge">自研机型</span>'}</div>
+          
+          
+          
+          
           
           
           
@@ -8285,7 +13795,15 @@
           
           
           
+          
+          
+          
+          
             <div class="modal-section-title">用户评价 / USER RATINGS</div>
+          
+          
+          
+          
           
           
           
@@ -8293,7 +13811,15 @@
           
           
           
+          
+          
+          
+          
               ${ratingKeys.map(k => `<div class="rating-bar"><label>${ratingLabels[k]}<b>${(p.ratings[k] || 0).toFixed(1)}</b></label><div class="progress"><i style="width:${clamp((p.ratings[k] || 0) * 10, 0, 100)}%"></i></div></div>`).join('')}
+          
+          
+          
+          
           
           
           
@@ -8301,7 +13827,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -8309,7 +13843,15 @@
           
           
           
+          
+          
+          
+          
             <div class="procon-box"><h5>优点 / PROS</h5><ul>${(p.pros || []).slice(0, 4).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+          
+          
+          
+          
           
           
           
@@ -8317,7 +13859,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -8325,7 +13875,15 @@
           
           
           
+          
+          
+          
+          
             <div class="editprice-form">
+          
+          
+          
+          
           
           
           
@@ -8333,7 +13891,15 @@
           
           
           
+          
+          
+          
+          
               <div class="detail-edit-row mt-8"><input class="text-input" type="number" min="99" step="100" id="product-price-input" value="${Math.round(p.price)}"><button class="btn btn-sm btn-primary" data-action="save-product-price" data-id="${attr(p.id)}">应用</button></div>
+          
+          
+          
+          
           
           
           
@@ -8341,11 +13907,23 @@
           
           
           
+          
+          
+          
+          
             ${isCamera ? `<div class="divider" style="margin:12px 0"></div><div class="flex justify-between items-center"><span class="mini-label">套机镜头</span><span class="faint" style="font-size:8px">销售占比约 55%</span></div><div class="detail-edit-row mt-8"><select class="select-input" id="product-kit-select"><option value="">仅机身</option>${kitOptions.map(l => `<option value="${l.id}" ${p.kitLensId === l.id ? 'selected' : ''}>${esc(l.name)} · ${moneyNumber(l.price)}</option>`).join('')}</select><button class="btn btn-sm btn-secondary" data-action="save-kit-lens" data-id="${attr(p.id)}">应用</button></div>` : ''}
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -8353,7 +13931,15 @@
           
           
           
+          
+          
+          
+          
             ${p.status === 'active' ? `<button class="btn btn-sm btn-secondary" data-action="nav" data-page="operations" data-close-modal="1">${icon('factory')} 生产与库存</button><button class="btn btn-sm btn-danger" data-action="discontinue-product" data-id="${attr(p.id)}">${icon('trash')} 停产</button>` : `<button class="btn btn-sm btn-secondary" data-action="relist-product" data-id="${attr(p.id)}">${icon('refresh')} 重新上架</button>`}
+          
+          
+          
+          
           
           
           
@@ -8361,7 +13947,15 @@
           
           
           
+          
+          
+          
+          
           ${isCamera && competitors.length ? `<div class="modal-section mt-16"><div class="modal-section-title">同品类竞品</div><div class="data-table-wrap"><table class="data-table"><tbody>${competitors.map(c => `<tr><td class="name-cell">${esc(c.name)}</td><td><span class="brand-dot" style="background:${attr(c.color)}"></span>${esc(c.brand)}</td><td class="num">${moneyNumber(c.price)}</td><td class="num">${c.score}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
+          
+          
+          
+          
           
           
           
@@ -8389,7 +13983,15 @@
           
           
           
+          
+          
+          
+          
           <div><div class="report-hero-title">NET PROFIT / 本期净利润</div><div class="report-hero-value ${r.netProfit < 0 ? 'is-negative' : ''}">${money(r.netProfit)}</div><div class="report-hero-meta">${r.netProfit >= 0 ? '经营利润为正。' : '本期经营出现亏损，请检查成本结构与销量。'} 现金变化 ${signedMoney(r.cashDelta)} · 期末现金 ${money(r.cashEnd)}</div></div>
+          
+          
+          
+          
           
           
           
@@ -8399,7 +14001,15 @@
           
           
           
+          
+          
+          
+          
           <div class="report-kpi"><label>净营收</label><b>${money(r.revenueNet)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -8407,7 +14017,15 @@
           
           
           
+          
+          
+          
+          
           <div class="report-kpi"><label>相机 / 镜头</label><b>${r.cameraUnits.toLocaleString('zh-CN')} / ${r.lensUnits.toLocaleString('zh-CN')}</b></div>
+          
+          
+          
+          
           
           
           
@@ -8417,7 +14035,15 @@
           
           
           
+          
+          
+          
+          
           <div class="modal-section">
+          
+          
+          
+          
           
           
           
@@ -8425,7 +14051,15 @@
           
           
           
+          
+          
+          
+          
             <div class="report-product-list">
+          
+          
+          
+          
           
           
           
@@ -8433,7 +14067,15 @@
           
           
           
+          
+          
+          
+          
               ${camSales.length ? camSales.map(s => `<div class="report-product-row"><span class="report-product-name">${esc(s.name)}</span><span class="num">${s.units.toLocaleString('zh-CN')}</span><span class="num">${s.demand.toLocaleString('zh-CN')}</span><span class="num">${money(s.revenue)}</span></div>`).join('') : '<div class="empty-inline">本期无相机销售。</div>'}
+          
+          
+          
+          
           
           
           
@@ -8441,7 +14083,15 @@
           
           
           
+          
+          
+          
+          
             </div>
+          
+          
+          
+          
           
           
           
@@ -8449,7 +14099,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -8457,7 +14115,15 @@
           
           
           
+          
+          
+          
+          
             <div class="modal-section-title">财务拆分</div>
+          
+          
+          
+          
           
           
           
@@ -8465,7 +14131,15 @@
           
           
           
+          
+          
+          
+          
             <div class="grid-2 mt-8"><span class="faint" style="font-size:8px">生产现金支出</span><span style="text-align:right;font-family:var(--font-mono);font-size:8px">${money(r.productionSpend)}</span><span class="faint" style="font-size:8px">库存价值</span><span style="text-align:right;font-family:var(--font-mono);font-size:8px">${money(r.inventoryValue)}</span></div>
+          
+          
+          
+          
           
           
           
@@ -8546,24 +14220,43 @@
       body: `<div class="chip-modal-grid">
         <div>${kind === 'cmos' ? cmosBody : afBody}</div>
         <aside class="chip-estimate">
+          
           <div class="eyebrow">PROGRAM ESTIMATE</div>
+          
           <div class="chip-estimate-title">${esc(estimate.ok ? estimate.name : '当前配置不可行')}</div>
+          
           ${estimate.ok ? `
+          
             <div class="chip-estimate-rows">
+          
               <div><label>前期投入</label><b>${money(estimate.cost)}</b></div>
+          
               <div><label>预计周期</label><b>${estimate.months} 个月</b></div>
+          
               <div><label>研发点数</label><b>${estimate.points} CP</b></div>
+          
               ${kind === 'cmos' ? `
+          
                 <div><label>单位成本系数</label><b>×${estimate.costFactor.toFixed(2)}</b></div>
+          
                 <div><label>画质加成</label><b>+${estimate.quality}</b></div>
+          
                 <div><label>缺陷系数</label><b>×${estimate.defect.toFixed(2)}</b></div>
+          
               ` : `
+          
                 <div><label>对焦加成</label><b>+${estimate.bonus}</b></div>
+          
                 <div><label>模组成本变化</label><b>${estimate.costDelta}</b></div>
+          
               `}
+          
               <div><label>实验室槽位</label><b>${active}/${slots}</b></div>
+          
             </div>
+          
             <div class="callout ${can ? 'accent' : 'bad'} mt-12"><div class="callout-title">${icon(can ? 'info' : 'alert')} ${can ? '可以立项' : active >= slots ? '实验室槽位已满' : '现金不足'}</div>${can ? `立项后立即扣除 ${money(estimate.cost)} 研发预算，项目按月推进。` : active >= slots ? '先完成或中止一个项目，或升级实验室。' : `当前现金 ${money(c.cash)}，还需要 ${money(estimate.cost - c.cash)}。`}</div>
+          
           ` : `<div class="callout bad"><div class="callout-title">${icon('alert')} 无法立项</div>${esc(estimate.error || '当前配置不满足条件。')}</div>`}
         </aside>
       </div>`,
@@ -8612,43 +14305,79 @@
       size: 'xl',
       body: `<div class="launch-planner">
         <div class="launch-planner-main">
+          
           <div class="launch-product-row">
+          
             <div class="launch-product-visual">${photo}</div>
+          
             <div><div class="eyebrow">${kind === 'camera' ? 'NEW CAMERA' : 'NEW LENS'} · ${esc(E.monthLabel(game.monthIndex))}</div><div class="launch-product-name">${esc(draft.name || '未命名产品')}</div><div class="launch-product-sub">${kind === 'camera' ? esc(categoryData(draft.category).name) : esc(D.LENS_TYPES[draft.lensType]?.name || '镜头')} · ${ev.overall} / 100 预测口碑 · 芯片：${kind === 'camera' && ev.chips && ev.chips.cmosSource === 'inhouse' ? '自研 CMOS' : '外购 CMOS'} / ${kind === 'camera' && ev.chips && ev.chips.afSource === 'inhouse' ? '自研 AF' : '外购 AF'}</div></div>
+          
           </div>
+          
           <div class="modal-section-title">发布规模</div>
+          
           <div class="option-grid cols-5">${scale}</div>
+          
           <div class="modal-section-title mt-16">发布会形式</div>
+          
           <div class="option-grid cols-4">${formats}</div>
+          
           <div class="modal-section-title mt-16">城市 / 现场</div>
+          
           <div class="option-grid cols-5">${cities}</div>
+          
           <div class="modal-section-title mt-16">媒体邀请</div>
+          
           <div class="option-grid cols-4">${press}</div>
+          
           <div class="modal-section-title mt-16">创作者 / KOL</div>
+          
           <div class="option-grid cols-4">${kols}</div>
+          
           <div class="modal-section-title mt-16">演示重点</div>
+          
           <div class="option-grid cols-5">${focus}</div>
+          
           <div class="toggle-setting mt-16"><div class="toggle-setting-info"><b>开放预购</b><span>支付定金锁定首批用户，发布会当天开始收单；预购计入首月需求。</span></div><button class="toggle ${plan.preorder ? 'is-on' : ''}" data-action="event-preorder" data-kind="${kind}"></button></div>
         </div>
         <aside class="launch-estimate">
+          
           <div class="eyebrow">LIVE ESTIMATE</div>
+          
           <div class="launch-estimate-title">${esc(event.label || '静默上市')}</div>
+          
           <div class="launch-estimate-rows">
+          
             <div><label>发布会成本</label><b>${event.cost ? money(event.cost) : '—'}</b></div>
+          
             <div><label>预计声量</label><b>${Math.round(event.hype)}</b></div>
+          
             <div><label>媒体触达</label><b>${event.reach ? (event.reach / 10000).toFixed(1) + ' 万' : '—'}</b></div>
+          
             <div><label>媒体评分</label><b>${Math.round(event.pressScore)} / 100</b></div>
+          
             <div><label>预购转化</label><b>${Math.round(event.preorderRate * 100)}%${preview.preorderUnits ? ' · ' + units(preview.preorderUnits) : ''}</b></div>
+          
             <div><label>演示匹配度</label><b>${Math.round(event.focusMatch * 100)}%</b></div>
+          
             <div><label>首月预计需求</label><b>${units(preview.demand.units)}</b></div>
+          
           </div>
+          
           <div class="launch-roi">
+          
             <div><span>上市总投入</span><b>${money(preview.totalLaunch)}</b></div>
+          
             <div><span>发布会占投入</span><b>${preview.totalLaunch ? Math.round(event.cost / preview.totalLaunch * 100) : 0}%</b></div>
+          
           </div>
+          
           ${event.chipStory ? `<div class="callout accent mt-12"><div class="callout-title">${icon('cpu')} 芯片叙事加成</div>自研芯片会成为媒体关注点，声量与媒体评分已经计入。</div>` : ''}
+          
           ${event.home ? `<div class="callout mt-12"><div class="callout-title">${icon('globe')} 主场优势</div>${esc(event.city.name)} 是品牌的母国/区域市场，媒体与渠道触达获得加成。</div>` : ''}
+          
           ${ev.blocking.length ? `<div class="callout bad mt-12">${icon('alert')} 产品仍有阻塞问题，发布会只能先保存方案。</div>` : ''}
+          
           ${game.company.cash < preview.totalLaunch ? `<div class="callout bad mt-12">${icon('alert')} 现金不足，暂时无法完成上市。</div>` : ''}
         </aside>
       </div>`,
@@ -8669,7 +14398,9 @@
       : report.pressScore >= 75
         ? '“核心规格有竞争力，现场体验比预期更完整。”'
         : report.pressScore >= 62
+          
           ? '“产品有亮点，但发布节奏与信息密度仍有提升空间。”'
+          
           : '“现场声量有限，产品需要更清晰的理由。”';
     return modalShell({
       title: '发布会报告',
@@ -8679,19 +14410,33 @@
       body: `<div class="event-report">
         <div class="event-report-visual">${photo}</div>
         <div class="event-report-main">
+          
           <div class="eyebrow">${esc(report.scaleName || '')} / ${esc(report.plan && D.EVENT_FOCUS[report.plan.focus] ? D.EVENT_FOCUS[report.plan.focus].name : '')}</div>
+          
           <h3>${esc(report.productName)}</h3>
+          
           <p class="event-report-quote">${esc(quote)}</p>
+          
           <div class="event-report-metrics">
+          
             <div><label>媒体评分</label><b>${Math.round(report.pressScore || 0)}</b></div>
+          
             <div><label>预计触达</label><b>${report.reach ? (report.reach / 10000).toFixed(1) + '万' : '—'}</b></div>
+          
             <div><label>预购</label><b>${report.preorders ? units(report.preorders) : '—'}</b></div>
+          
             <div><label>发布会成本</label><b>${report.cost ? money(report.cost) : '—'}</b></div>
+          
             <div><label>声量</label><b>${Math.round(report.hype || 0)}</b></div>
+          
             <div><label>演示匹配</label><b>${Math.round((report.focusMatch || 0) * 100)}%</b></div>
+          
           </div>
+          
           <div class="event-report-plan"><b>方案：</b>${esc(report.label || '')}${report.plan ? ` · 媒体 ${esc((D.PRESS_TIERS[report.plan.press] || {}).name || '—')} · 创作者 ${esc((D.KOL_TIERS[report.plan.kol] || {}).name || '—')} · ${report.plan.preorder ? '开放预购' : '不开放预购'}` : ''}</div>
+          
           ${report.chipStory ? `<div class="callout accent mt-12"><div class="callout-title">${icon('cpu')} 自研芯片成为叙事的一部分</div>媒体在报道中提到了自研芯片，对品牌技术形象有额外帮助。</div>` : ''}
+          
           <div class="flex gap-8 mt-16"><button class="btn btn-sm btn-secondary" data-action="launch-success-products">${icon('camera')} 查看产品线</button><button class="btn btn-sm btn-primary" data-action="close-modal">继续经营</button></div>
         </div>
       </div>`
@@ -8727,7 +14472,15 @@
           
           
           
+          
+          
+          
+          
           <div class="eyebrow">${kind === 'camera' ? 'NEW CAMERA' : 'NEW LENS'}</div>
+          
+          
+          
+          
           
           
           
@@ -8735,7 +14488,15 @@
           
           
           
+          
+          
+          
+          
           <div class="detail-sub">${esc(categoryName)} · ${kind === 'camera' ? esc(segmentData(draft.targetSegment).name) : esc(draft.mount.type) + ' 卡口'} · ${ev.overall} / 100 预测口碑 · ${ev.premiumBadge.label}</div>
+          
+          
+          
+          
           
           
           
@@ -8743,7 +14504,15 @@
           
           
           
+          
+          
+          
+          
             <div class="launch-box-title">${icon('receipt')} 上市支出</div>
+          
+          
+          
+          
           
           
           
@@ -8751,7 +14520,15 @@
           
           
           
+          
+          
+          
+          
               <div><label>工装与试产</label><b>${moneyNumber(launch.tooling)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -8759,7 +14536,15 @@
           
           
           
+          
+          
+          
+          
               <div><label>${kind === 'camera' ? esc(launch.cert.name) : '上市营销'}</label><b>${moneyNumber(kind === 'camera' ? launch.certCost : launch.campaignCost)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -8767,7 +14552,15 @@
           
           
           
+          
+          
+          
+          
               <div><label>合计</label><b style="color:var(--accent-bright)">${moneyNumber(launch.totalLaunch)}</b></div>
+          
+          
+          
+          
           
           
           
@@ -8775,12 +14568,25 @@
           
           
           
+          
+          
+          
+          
             <div class="launch-note">上市后现金 ${money(game.company.cash - launch.totalLaunch)} · 预计首月需求 ${units(launch.demand.units)} · 单件成本 ${moneyNumber(ev.unitCost)}</div>
+          
           ${launch.event ? `<div class="launch-event-summary">
+          
             <div class="launch-event-summary-top"><span class="eyebrow">LAUNCH EVENT</span><span class="badge ${launch.event.hype >= 60 ? 'accent' : ''}">${esc(launch.event.label)}</span></div>
+          
             <div class="launch-event-summary-grid"><span>声量 <b>${Math.round(launch.event.hype)}</b></span><span>媒体评分 <b>${Math.round(launch.event.pressScore)}</b></span><span>触达 <b>${launch.event.reach ? (launch.event.reach / 10000).toFixed(1) + '万' : '—'}</b></span><span>预购 <b>${launch.preorderUnits ? units(launch.preorderUnits) : '—'}</b></span></div>
+          
             <button class="link-btn" data-action="open-launch-planner" data-kind="${kind}">调整发布会方案 →</button>
+          
           </div>` : ''}
+          
+          
+          
+          
           
           
           
@@ -8788,11 +14594,23 @@
           
           
           
+          
+          
+          
+          
           ${ev.blocking.length ? `<div class="callout bad mt-12">${ev.blocking.map(w => esc(w.text)).join('<br>')}</div>` : ''}
           
           
           
+          
+          
+          
+          
           ${game.company.cash < launch.totalLaunch ? '<div class="callout bad mt-12">现金不足，暂时无法上市。请先调整备货、营销，或申请贷款。</div>' : ''}
+          
+          
+          
+          
           
           
           
@@ -8820,7 +14638,15 @@
           
           
           
+          
+          
+          
+          
           <div class="eyebrow">${isCamera ? 'CAMERA' : 'LENS'} / ${esc(E.monthLabel(game.monthIndex))}</div>
+          
+          
+          
+          
           
           
           
@@ -8828,7 +14654,15 @@
           
           
           
+          
+          
+          
+          
           <p>${isCamera ? esc(categoryData(p.category).name) : esc(D.LENS_TYPES[p.lensType]?.name || '镜头')} · ${isCamera ? `${p.design.sensor.mp}MP ${D.SENSOR_FORMATS[p.design.sensor.format].name}` : `${p.focalMin}${p.focalMax !== p.focalMin ? '-' + p.focalMax : ''}mm F${p.maxAperture}`} · 建议零售 ${moneyNumber(p.price)}</p>
+          
+          
+          
+          
           
           
           
@@ -8836,7 +14670,15 @@
           
           
           
+          
+          
+          
+          
             <div class="launch-metric"><label>预测口碑</label><b>${p.overall} / 100</b></div>
+          
+          
+          
+          
           
           
           
@@ -8844,7 +14686,15 @@
           
           
           
+          
+          
+          
+          
             <div class="launch-metric"><label>首批库存</label><b>${(p.stock || 0).toLocaleString('zh-CN')} 件</b></div>
+          
+          
+          
+          
           
           
           
@@ -8852,7 +14702,15 @@
           
           
           
+          
+          
+          
+          
           </div>
+          
+          
+          
+          
           
           
           
@@ -8860,11 +14718,20 @@
           
           
           
+          
+          
+          
+          
           ${p.launchEvent ? `<div class="launch-event-summary mt-12">
+          
             <div class="launch-event-summary-top"><span class="eyebrow">LAUNCH REPORT</span><span class="badge accent">${esc(p.launchEvent.label)}</span></div>
+          
             <div class="launch-event-summary-grid"><span>媒体评分 <b>${Math.round(p.launchEvent.pressScore || 0)}</b></span><span>触达 <b>${p.launchEvent.reach ? (p.launchEvent.reach / 10000).toFixed(1) + '万' : '—'}</b></span><span>预购 <b>${p.launchEvent.preorders ? units(p.launchEvent.preorders) : '—'}</b></span><span>声量 <b>${Math.round(p.launchEvent.hype || 0)}</b></span></div>
+          
             <button class="link-btn" data-action="open-launch-report" data-id="${attr(p.launchEvent.id)}">查看完整发布会报告 →</button>
+          
           </div>` : ''}
+          
           <div class="flex gap-8 mt-16"><button class="btn btn-sm btn-secondary" data-action="launch-success-products">${icon('camera')} 查看产品线</button>${p.launchEvent ? `<button class="btn btn-sm btn-secondary" data-action="open-launch-report" data-id="${attr(p.launchEvent.id)}">${icon('megaphone')} 发布会报告</button>` : ''}<button class="btn btn-sm btn-primary" data-action="close-modal">继续经营</button></div>
         </div>
       </div>`
@@ -8897,13 +14764,25 @@
           
           
           
+          
+          
+          
+          
           <div><div class="eyebrow">SIGNAL / 行业动态</div><div class="modal-title" style="font-size:19px;margin-top:5px">市场正在发生什么</div><div class="modal-sub">${news.length} 条新闻 · ${E.monthLabel(game.monthIndex)}</div></div>
+          
+          
+          
+          
           
           
           
           <button class="modal-close" data-action="close-modal" aria-label="关闭">${icon('close')}</button>
         </div>
         <div class="drawer-body">
+          
+          
+          
+          
           
           
           
@@ -9349,14 +15228,21 @@
   }
 
   function enterGame(newGame, options) {
+    if (window.BootFX && window.BootFX.loading) {
+      try {
+        const __nm = (newGame && newGame.company && newGame.company.name) || '';
+        window.BootFX.loading(__nm);
+      } catch (e) {}
+    }
     options = options || {};
     game = newGame;
     if (ART && game.art && game.art.settings && ART.online) ART.online.setEnabled(game.art.settings.online !== false);
     const wantAutoSync = !!(game.art && game.art.settings && game.art.settings.autoSync);
     UI.artAutoSynced = !wantAutoSync;
     if (wantAutoSync) setTimeout(autoSyncReferences, 2600);
+    try { if (window.FrameEvents) window.FrameEvents.checkMonth(game); } catch (e) {}
     UI.savePeek = null;
-    UI.page = 'overview';
+    UI.page = 'command';
     UI.productTab = 'cameras';
     UI.productFilter = 'all';
     UI.marketTab = 'overview';
@@ -9469,11 +15355,23 @@
           
           
           
+          
+          
+          
+          
           enterGame(res.game, { welcome: false });
           
           
           
+          
+          
+          
+          
           E.saveGame(res.game);
+          
+          
+          
+          
           
           
           
@@ -9506,7 +15404,15 @@
           
           
           
+          
+          
+          
+          
           if (event && event.target === el) closeModal();
+          
+          
+          
+          
           
           
           
@@ -9515,7 +15421,15 @@
           
           
           
+          
+          
+          
+          
           closeModal();
+          
+          
+          
+          
           
           
           
@@ -9524,7 +15438,15 @@
           
           
           
+          
+          
+          
+          
           openModal('help');
+          
+          
+          
+          
           
           
           
@@ -9533,11 +15455,23 @@
           
           
           
+          
+          
+          
+          
           closeModal();
           
           
           
+          
+          
+          
+          
           if (game) { UI.page = 'design'; renderApp(); setTimeout(() => openModal('new-camera'), 100); }
+          
+          
+          
+          
           
           
           
@@ -9546,7 +15480,15 @@
           
           
           
+          
+          
+          
+          
           bootStart();
+          
+          
+          
+          
           
           
           
@@ -9555,7 +15497,15 @@
           
           
           
+          
+          
+          
+          
           bootContinue();
+          
+          
+          
+          
           
           
           
@@ -9564,7 +15514,15 @@
           
           
           
+          
+          
+          
+          
           if (!game) break;
+          
+          
+          
+          
           
           
           
@@ -9572,7 +15530,15 @@
           
           
           
+          
+          
+          
+          
           if (el.dataset.closeModal) closeModal();
+          
+          
+          
+          
           
           
           
@@ -9580,7 +15546,15 @@
           
           
           
+          
+          
+          
+          
           UI.sidebarOpen = false;
+          
+          
+          
+          
           
           
           
@@ -9588,7 +15562,15 @@
           
           
           
+          
+          
+          
+          
           if (target === 'studio-camera' && !game.drafts.camera) { openModal('new-camera'); break; }
+          
+          
+          
+          
           
           
           
@@ -9596,11 +15578,23 @@
           
           
           
+          
+          
+          
+          
           renderApp();
           
           
           
+          
+          
+          
+          
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          
+          
+          
           
           
           
@@ -9610,11 +15604,23 @@
           
           
           
+          
+          
+          
+          
           UI.sidebarOpen = !UI.sidebarOpen;
           
           
           
+          
+          
+          
+          
           appEl.classList.toggle('sidebar-open', UI.sidebarOpen);
+          
+          
+          
+          
           
           
           
@@ -9623,11 +15629,23 @@
           
           
           
+          
+          
+          
+          
           UI.sidebarOpen = false;
           
           
           
+          
+          
+          
+          
           appEl.classList.remove('sidebar-open');
+          
+          
+          
+          
           
           
           
@@ -9636,7 +15654,15 @@
           
           
           
+          
+          
+          
+          
           if (game) openModal('news', {});
+          
+          
+          
+          
           
           
           
@@ -9645,7 +15671,15 @@
           
           
           
+          
+          
+          
+          
           advanceMonth();
+          
+          
+          
+          
           
           
           
@@ -9654,7 +15688,15 @@
           
           
           
+          
+          
+          
+          
           if (!game) break;
+          
+          
+          
+          
           
           
           
@@ -9662,7 +15704,15 @@
           
           
           
+          
+          
+          
+          
             UI.page = 'studio-camera';
+          
+          
+          
+          
           
           
           
@@ -9670,7 +15720,15 @@
           
           
           
+          
+          
+          
+          
             closeModal();
+          
+          
+          
+          
           
           
           
@@ -9678,7 +15736,15 @@
           
           
           
+          
+          
+          
+          
             showToast('已恢复未完成的相机设计。', 'info', '设计草稿');
+          
+          
+          
+          
           
           
           
@@ -9686,11 +15752,23 @@
           
           
           
+          
+          
+          
+          
             openModal('new-camera');
           
           
           
+          
+          
+          
+          
           }
+          
+          
+          
+          
           
           
           
@@ -9699,7 +15777,15 @@
           
           
           
+          
+          
+          
+          
           startLensDraft();
+          
+          
+          
+          
           
           
           
@@ -9708,7 +15794,15 @@
           
           
           
+          
+          
+          
+          
           startCameraDraft(el.dataset.category);
+          
+          
+          
+          
           
           
           
@@ -9717,7 +15811,15 @@
           
           
           
+          
+          
+          
+          
           if (!game || !game.drafts.camera) { startCameraDraft('mirrorless'); break; }
+          
+          
+          
+          
           
           
           
@@ -9725,7 +15827,15 @@
           
           
           
+          
+          
+          
+          
           UI.page = 'studio-camera';
+          
+          
+          
+          
           
           
           
@@ -9733,7 +15843,15 @@
           
           
           
+          
+          
+          
+          
           renderApp();
+          
+          
+          
+          
           
           
           
@@ -9742,7 +15860,15 @@
           
           
           
+          
+          
+          
+          
           if (!game || !game.drafts.lens) { startLensDraft(); break; }
+          
+          
+          
+          
           
           
           
@@ -9750,7 +15876,15 @@
           
           
           
+          
+          
+          
+          
           UI.page = 'studio-lens';
+          
+          
+          
+          
           
           
           
@@ -9758,7 +15892,15 @@
           
           
           
+          
+          
+          
+          
           renderApp();
+          
+          
+          
+          
           
           
           
@@ -9767,7 +15909,15 @@
           
           
           
+          
+          
+          
+          
           askConfirm({
+          
+          
+          
+          
           
           
           
@@ -9775,7 +15925,15 @@
           
           
           
+          
+          
+          
+          
             messageHtml: `<div class="callout-title">${icon('alert')} 无法撤销</div>${esc(game.drafts.camera?.name || '当前相机')} 的所有外形、传感器与定价选择都会被删除。`,
+          
+          
+          
+          
           
           
           
@@ -9783,7 +15941,15 @@
           
           
           
+          
+          
+          
+          
               game.drafts.camera = null;
+          
+          
+          
+          
           
           
           
@@ -9791,7 +15957,15 @@
           
           
           
+          
+          
+          
+          
               if (UI.page === 'studio-camera') UI.page = 'design';
+          
+          
+          
+          
           
           
           
@@ -9799,7 +15973,15 @@
           
           
           
+          
+          
+          
+          
               showToast('相机草稿已丢弃。', 'info');
+          
+          
+          
+          
           
           
           
@@ -9807,7 +15989,15 @@
           
           
           
+          
+          
+          
+          
           });
+          
+          
+          
+          
           
           
           
@@ -9816,7 +16006,15 @@
           
           
           
+          
+          
+          
+          
           askConfirm({
+          
+          
+          
+          
           
           
           
@@ -9824,7 +16022,15 @@
           
           
           
+          
+          
+          
+          
             messageHtml: `<div class="callout-title">${icon('alert')} 无法撤销</div>${esc(game.drafts.lens?.name || '当前镜头')} 的光学结构、镜身设计和定价都会被删除。`,
+          
+          
+          
+          
           
           
           
@@ -9832,7 +16038,15 @@
           
           
           
+          
+          
+          
+          
               game.drafts.lens = null;
+          
+          
+          
+          
           
           
           
@@ -9840,7 +16054,15 @@
           
           
           
+          
+          
+          
+          
               if (UI.page === 'studio-lens') UI.page = 'design';
+          
+          
+          
+          
           
           
           
@@ -9848,7 +16070,15 @@
           
           
           
+          
+          
+          
+          
               showToast('镜头草稿已丢弃。', 'info');
+          
+          
+          
+          
           
           
           
@@ -9856,7 +16086,15 @@
           
           
           
+          
+          
+          
+          
           });
+          
+          
+          
+          
           
           
           
@@ -9865,7 +16103,15 @@
           
           
           
+          
+          
+          
+          
           if (game && game.drafts.camera) game.drafts.camera._uiStep = UI.studioStep;
+          
+          
+          
+          
           
           
           
@@ -9873,11 +16119,23 @@
           
           
           
+          
+          
+          
+          
           persist(true);
           
           
           
+          
+          
+          
+          
           showToast('设计草稿已保存在本地。', 'good');
+          
+          
+          
+          
           
           
           
@@ -9887,7 +16145,15 @@
           
           
           
+          
+          
+          
+          
           const step = clamp(Number(el.dataset.step) || 1, 1, 8);
+          
+          
+          
+          
           
           
           
@@ -9895,7 +16161,15 @@
           
           
           
+          
+          
+          
+          
           if (game.drafts.camera) game.drafts.camera._uiStep = step;
+          
+          
+          
+          
           
           
           
@@ -9903,11 +16177,23 @@
           
           
           
+          
+          
+          
+          
           renderApp();
           
           
           
+          
+          
+          
+          
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          
+          
+          
           
           
           
@@ -9917,7 +16203,15 @@
           
           
           
+          
+          
+          
+          
           if (UI.studioStep >= 8) { openModal('launch-confirm', { kind: 'camera' }); break; }
+          
+          
+          
+          
           
           
           
@@ -9925,7 +16219,15 @@
           
           
           
+          
+          
+          
+          
           if (game.drafts.camera) game.drafts.camera._uiStep = UI.studioStep;
+          
+          
+          
+          
           
           
           
@@ -9933,11 +16235,23 @@
           
           
           
+          
+          
+          
+          
           renderApp();
           
           
           
+          
+          
+          
+          
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          
+          
+          
           
           
           
@@ -9947,7 +16261,15 @@
           
           
           
+          
+          
+          
+          
           UI.studioStep = Math.max(1, UI.studioStep - 1);
+          
+          
+          
+          
           
           
           
@@ -9955,7 +16277,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -9963,7 +16293,15 @@
           
           
           
+          
+          
+          
+          
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          
+          
+          
           
           
           
@@ -9972,7 +16310,15 @@
           
           
           
+          
+          
+          
+          
           openModal('launch-confirm', { kind: 'camera' });
+          
+          
+          
+          
           
           
           
@@ -9981,7 +16327,15 @@
           
           
           
+          
+          
+          
+          
           const cat = el.dataset.category;
+          
+          
+          
+          
           
           
           
@@ -9989,7 +16343,15 @@
           
           
           
+          
+          
+          
+          
             title: `切换到${D.CATEGORIES[cat]?.name || '新品类'}？`, eyebrow: 'PRODUCT LINE CHANGE / 产品线变更',
+          
+          
+          
+          
           
           
           
@@ -9997,11 +16359,23 @@
           
           
           
+          
+          
+          
+          
             confirmLabel: '切换并套用', onConfirm: () => setCameraCategory(cat)
           
           
           
+          
+          
+          
+          
           });
+          
+          
+          
+          
           
           
           
@@ -10011,7 +16385,15 @@
           
           
           
+          
+          
+          
+          
           setCameraBodyType(el.dataset.bodyType);
+          
+          
+          
+          
           
           
           
@@ -10020,7 +16402,15 @@
           
           
           
+          
+          
+          
+          
           applyCameraTemplate(el.dataset.template);
+          
+          
+          
+          
           
           
           
@@ -10029,7 +16419,15 @@
           
           
           
+          
+          
+          
+          
           randomInspiration();
+          
+          
+          
+          
           
           
           
@@ -10038,7 +16436,15 @@
           
           
           
+          
+          
+          
+          
           applyStudioChoice(el);
+          
+          
+          
+          
           
           
           
@@ -10047,7 +16453,15 @@
           
           
           
+          
+          
+          
+          
           const scope = currentStudioScope(el);
+          
+          
+          
+          
           
           
           
@@ -10055,7 +16469,15 @@
           
           
           
+          
+          
+          
+          
           if (obj) { setDeepValue(obj, el.dataset.path, el.dataset.value); commitChange(); }
+          
+          
+          
+          
           
           
           
@@ -10065,7 +16487,15 @@
           
           
           
+          
+          
+          
+          
           const scope = currentStudioScope(el);
+          
+          
+          
+          
           
           
           
@@ -10073,7 +16503,15 @@
           
           
           
+          
+          
+          
+          
           if (obj) {
+          
+          
+          
+          
           
           
           
@@ -10081,7 +16519,15 @@
           
           
           
+          
+          
+          
+          
             setDeepValue(obj, el.dataset.path, !current);
+          
+          
+          
+          
           
           
           
@@ -10089,7 +16535,15 @@
           
           
           
+          
+          
+          
+          
           }
+          
+          
+          
+          
           
           
           
@@ -10099,7 +16553,15 @@
           
           
           
+          
+          
+          
+          
           const scope = currentStudioScope(el);
+          
+          
+          
+          
           
           
           
@@ -10107,7 +16569,15 @@
           
           
           
+          
+          
+          
+          
           if (obj) {
+          
+          
+          
+          
           
           
           
@@ -10115,7 +16585,15 @@
           
           
           
+          
+          
+          
+          
             const current = el.dataset.path.split('.').reduce((o, k) => o && o[k], obj);
+          
+          
+          
+          
           
           
           
@@ -10123,7 +16601,15 @@
           
           
           
+          
+          
+          
+          
               const val = el.dataset.value;
+          
+          
+          
+          
           
           
           
@@ -10131,7 +16617,15 @@
           
           
           
+          
+          
+          
+          
               if (idx >= 0) current.splice(idx, 1); else current.push(val);
+          
+          
+          
+          
           
           
           
@@ -10139,7 +16633,15 @@
           
           
           
+          
+          
+          
+          
               commitChange();
+          
+          
+          
+          
           
           
           
@@ -10147,7 +16649,15 @@
           
           
           
+          
+          
+          
+          
           }
+          
+          
+          
+          
           
           
           
@@ -10157,7 +16667,15 @@
           
           
           
+          
+          
+          
+          
           const draft = game.drafts.camera;
+          
+          
+          
+          
           
           
           
@@ -10165,7 +16683,15 @@
           
           
           
+          
+          
+          
+          
           if (draft && draft.controls.buttons[cid]) {
+          
+          
+          
+          
           
           
           
@@ -10173,11 +16699,23 @@
           
           
           
+          
+          
+          
+          
             commitChange();
           
           
           
+          
+          
+          
+          
           }
+          
+          
+          
+          
           
           
           
@@ -10187,7 +16725,15 @@
           
           
           
+          
+          
+          
+          
           if (!game.drafts.camera) break;
+          
+          
+          
+          
           
           
           
@@ -10195,11 +16741,23 @@
           
           
           
+          
+          
+          
+          
           commitChange();
           
           
           
+          
+          
+          
+          
           showToast('操控布局预设已应用，你可以继续微调每一个按键。', 'info');
+          
+          
+          
+          
           
           
           
@@ -10209,11 +16767,23 @@
           
           
           
+          
+          
+          
+          
           UI.previewView = el.dataset.view || 'front';
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -10222,11 +16792,23 @@
           
           
           
+          
+          
+          
+          
           UI.previewMode = ['technical', 'render', 'photo'].includes(el.dataset.mode) ? el.dataset.mode : 'photo';
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -10235,7 +16817,15 @@
           
           
           
+          
+          
+          
+          
           UI.page = 'gallery';
+          
+          
+          
+          
           
           
           
@@ -10243,7 +16833,15 @@
           
           
           
+          
+          
+          
+          
           UI.galleryBrand = 'all';
+          
+          
+          
+          
           
           
           
@@ -10251,7 +16849,15 @@
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -10260,7 +16866,15 @@
           
           
           
+          
+          
+          
+          
           UI.galleryBrand = 'all';
+          
+          
+          
+          
           
           
           
@@ -10268,7 +16882,15 @@
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -10277,7 +16899,15 @@
           
           
           
+          
+          
+          
+          
           if (!game.drafts.camera) break;
+          
+          
+          
+          
           
           
           
@@ -10285,7 +16915,15 @@
           
           
           
+          
+          
+          
+          
           showToast('已下载当前实拍参考图。', 'good');
+          
+          
+          
+          
           
           
           
@@ -10295,11 +16933,23 @@
           
           
           
+          
+          
+          
+          
           const p = findGameProduct(el.dataset.id);
           
           
           
+          
+          
+          
+          
           if (p) { downloadPhoto(photoForProduct(p)); showToast('已下载实拍参考图。', 'good'); }
+          
+          
+          
+          
           
           
           
@@ -10309,7 +16959,15 @@
           
           
           
+          
+          
+          
+          
           openModal('photo', { id: el.dataset.photo });
+          
+          
+          
+          
           
           
           
@@ -10318,11 +16976,23 @@
           
           
           
+          
+          
+          
+          
           const it = PHOTO && PHOTO.byId(el.dataset.photo);
           
           
           
+          
+          
+          
+          
           if (it) { downloadPhoto({ item: it }); showToast('已下载照片。', 'good'); }
+          
+          
+          
+          
           
           
           
@@ -10332,7 +17002,15 @@
           
           
           
+          
+          
+          
+          
           if (!PHOTO || !PHOTO.items.length) break;
+          
+          
+          
+          
           
           
           
@@ -10340,7 +17018,15 @@
           
           
           
+          
+          
+          
+          
             brandId: UI.galleryBrand === 'all' ? null : UI.galleryBrand,
+          
+          
+          
+          
           
           
           
@@ -10348,7 +17034,15 @@
           
           
           
+          
+          
+          
+          
           });
+          
+          
+          
+          
           
           
           
@@ -10356,7 +17050,15 @@
           
           
           
+          
+          
+          
+          
           if (!game.drafts.camera) { openModal('photo', { id: item.id }); break; }
+          
+          
+          
+          
           
           
           
@@ -10364,7 +17066,15 @@
           
           
           
+          
+          
+          
+          
           draft.photoId = item.id;
+          
+          
+          
+          
           
           
           
@@ -10372,7 +17082,15 @@
           
           
           
+          
+          
+          
+          
           if (struct) { applyModelToDraft(struct, draft); draft.photoId = item.id; }
+          
+          
+          
+          
           
           
           
@@ -10380,11 +17098,23 @@
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
           
           
           
+          
+          
+          
+          
           showToast('已随机选用 ' + item.brand + ' ' + item.model + ' 作为外形参考。', 'good', '照片参考');
+          
+          
+          
+          
           
           
           
@@ -10394,7 +17124,15 @@
           
           
           
+          
+          
+          
+          
           const item = PHOTO && PHOTO.byId(el.dataset.photo);
+          
+          
+          
+          
           
           
           
@@ -10402,7 +17140,15 @@
           
           
           
+          
+          
+          
+          
           game.drafts.camera.photoId = item.id;
+          
+          
+          
+          
           
           
           
@@ -10410,7 +17156,15 @@
           
           
           
+          
+          
+          
+          
           if (struct) {
+          
+          
+          
+          
           
           
           
@@ -10418,7 +17172,15 @@
           
           
           
+          
+          
+          
+          
             game.drafts.camera.photoId = item.id;
+          
+          
+          
+          
           
           
           
@@ -10426,7 +17188,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -10434,11 +17204,23 @@
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
           
           
           
+          
+          
+          
+          
           showToast('已把 ' + item.brand + ' ' + item.model + ' 设为外形照片参考。', 'good', '照片参考');
+          
+          
+          
+          
           
           
           
@@ -10448,7 +17230,15 @@
           
           
           
+          
+          
+          
+          
           const order = ['hero', 'front', 'back', 'top', 'side'];
+          
+          
+          
+          
           
           
           
@@ -10456,11 +17246,23 @@
           
           
           
+          
+          
+          
+          
           UI.artPhotoView = order[(idx + 1) % order.length];
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -10470,7 +17272,15 @@
           
           
           
+          
+          
+          
+          
           UI.artPhotoView = el.dataset.view || 'hero';
+          
+          
+          
+          
           
           
           
@@ -10478,7 +17288,15 @@
           
           
           
+          
+          
+          
+          
           if (side && game.drafts.camera) {
+          
+          
+          
+          
           
           
           
@@ -10486,7 +17304,15 @@
           
           
           
+          
+          
+          
+          
               const ev = E.evaluateCamera(game.drafts.camera, game.company, { kitLens: getCameraKitLens(game.drafts.camera) });
+          
+          
+          
+          
           
           
           
@@ -10494,7 +17320,15 @@
           
           
           
+          
+          
+          
+          
               paintArtCanvases(side, false);
+          
+          
+          
+          
           
           
           
@@ -10502,7 +17336,15 @@
           
           
           
+          
+          
+          
+          
           } else renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -10512,7 +17354,15 @@
           
           
           
+          
+          
+          
+          
           UI.artGhost = !UI.artGhost;
+          
+          
+          
+          
           
           
           
@@ -10520,7 +17370,15 @@
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -10529,7 +17387,15 @@
           
           
           
+          
+          
+          
+          
           if (!game.drafts.camera) break;
+          
+          
+          
+          
           
           
           
@@ -10537,7 +17403,15 @@
           
           
           
+          
+          
+          
+          
             kitLens: getCameraKitLens(game.drafts.camera),
+          
+          
+          
+          
           
           
           
@@ -10545,7 +17419,15 @@
           
           
           
+          
+          
+          
+          
           });
+          
+          
+          
+          
           
           
           
@@ -10553,7 +17435,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -10561,7 +17451,15 @@
           
           
           
+          
+          
+          
+          
           showToast(res.changed ? `已按现实结构校正 ${res.spec.meta.corrections.length} 项比例。` : '当前比例已经落在现实结构区间内，无需校正。', res.changed ? 'good' : 'info', 'Reality Guard');
+          
+          
+          
+          
           
           
           
@@ -10571,11 +17469,23 @@
           
           
           
+          
+          
+          
+          
           if (!game.drafts.camera) break;
           
           
           
+          
+          
+          
+          
           exportCameraArtwork(game.drafts.camera, game.company, { kitLens: getCameraKitLens(game.drafts.camera) }, game.drafts.camera.name);
+          
+          
+          
+          
           
           
           
@@ -10585,11 +17495,23 @@
           
           
           
+          
+          
+          
+          
           if (!game.drafts.lens) break;
           
           
           
+          
+          
+          
+          
           exportLensArtwork(game.drafts.lens, game.company, game.drafts.lens.name);
+          
+          
+          
+          
           
           
           
@@ -10599,7 +17521,15 @@
           
           
           
+          
+          
+          
+          
           const p = findGameProduct(el.dataset.id);
+          
+          
+          
+          
           
           
           
@@ -10607,11 +17537,23 @@
           
           
           
+          
+          
+          
+          
           if (p.kind === 'lens') exportLensArtwork(p.design, game.company, p.name);
           
           
           
+          
+          
+          
+          
           else exportCameraArtwork(p.design, game.company, { kitLens: E.getKitLens(game, p) }, p.name);
+          
+          
+          
+          
           
           
           
@@ -10621,7 +17563,15 @@
           
           
           
+          
+          
+          
+          
           useReferenceModel(el.dataset.model);
+          
+          
+          
+          
           
           
           
@@ -10630,7 +17580,15 @@
           
           
           
+          
+          
+          
+          
           openModal('ref-model', { id: el.dataset.model });
+          
+          
+          
+          
           
           
           
@@ -10639,7 +17597,15 @@
           
           
           
+          
+          
+          
+          
           openModal('ref-lens', { id: el.dataset.lens });
+          
+          
+          
+          
           
           
           
@@ -10648,7 +17614,15 @@
           
           
           
+          
+          
+          
+          
           UI.galleryTab = ['photos', 'cameras', 'lenses'].includes(el.dataset.tab) ? el.dataset.tab : 'photos';
+          
+          
+          
+          
           
           
           
@@ -10656,11 +17630,23 @@
           
           
           
+          
+          
+          
+          
           UI.galleryCat = 'all';
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -10669,11 +17655,23 @@
           
           
           
+          
+          
+          
+          
           UI.galleryBrand = el.dataset.brand || 'all';
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -10682,11 +17680,23 @@
           
           
           
+          
+          
+          
+          
           UI.galleryCat = el.dataset.cat || 'all';
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -10695,7 +17705,15 @@
           
           
           
+          
+          
+          
+          
           if (UI.galleryTab === 'lenses') {
+          
+          
+          
+          
           
           
           
@@ -10703,7 +17721,15 @@
           
           
           
+          
+          
+          
+          
             syncReferenceSet(list, '镜头参考图');
+          
+          
+          
+          
           
           
           
@@ -10711,7 +17737,15 @@
           
           
           
+          
+          
+          
+          
             const list = ART.data.MODELS.filter(m => (UI.galleryBrand === 'all' || m.brand === UI.galleryBrand) && (UI.galleryCat === 'all' || m.cat === UI.galleryCat)).slice(0, 14);
+          
+          
+          
+          
           
           
           
@@ -10719,7 +17753,15 @@
           
           
           
+          
+          
+          
+          
           }
+          
+          
+          
+          
           
           
           
@@ -10729,7 +17771,15 @@
           
           
           
+          
+          
+          
+          
           const brandId = game.company.isReal ? game.company.id : null;
+          
+          
+          
+          
           
           
           
@@ -10737,11 +17787,23 @@
           
           
           
+          
+          
+          
+          
           if (!list.length) list = ART.referenceModels({ company: game.company, category: 'mirrorless', limit: 8 });
           
           
           
+          
+          
+          
+          
           syncReferenceSet(list.slice(0, 10), (brandId ? game.company.name : '当前品牌') + ' 经典机型');
+          
+          
+          
+          
           
           
           
@@ -10751,7 +17813,15 @@
           
           
           
+          
+          
+          
+          
           game.art.settings.online = !game.art.settings.online;
+          
+          
+          
+          
           
           
           
@@ -10759,7 +17829,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -10767,7 +17845,15 @@
           
           
           
+          
+          
+          
+          
           showToast(game.art.settings.online ? '联网检索已开启。抓取结果会缓存到本地。' : '已切换为离线模式，继续使用本地缓存与内置结构库。', 'info', 'Reference Library');
+          
+          
+          
+          
           
           
           
@@ -10777,7 +17863,15 @@
           
           
           
+          
+          
+          
+          
           ART.cache.clear().then(() => {
+          
+          
+          
+          
           
           
           
@@ -10785,7 +17879,15 @@
           
           
           
+          
+          
+          
+          
             renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -10793,7 +17895,15 @@
           
           
           
+          
+          
+          
+          
           });
+          
+          
+          
+          
           
           
           
@@ -10804,7 +17914,15 @@
           
           
           
+          
+          
+          
+          
           const id = el.dataset.model;
+          
+          
+          
+          
           
           
           
@@ -10812,7 +17930,15 @@
           
           
           
+          
+          
+          
+          
           if (!model) break;
+          
+          
+          
+          
           
           
           
@@ -10820,7 +17946,15 @@
           
           
           
+          
+          
+          
+          
           showToast('正在从 Wikimedia Commons 抓取参考图…', 'info');
+          
+          
+          
+          
           
           
           
@@ -10828,7 +17962,15 @@
           
           
           
+          
+          
+          
+          
           const task = isLens ? ART.online.fetchLensPhoto(model) : ART.online.fetchModelPhoto(model, { force: true });
+          
+          
+          
+          
           
           
           
@@ -10836,7 +17978,15 @@
           
           
           
+          
+          
+          
+          
             if (res && res.record) refPhotoRecords.set(id, res.record);
+          
+          
+          
+          
           
           
           
@@ -10844,7 +17994,15 @@
           
           
           
+          
+          
+          
+          
             else showToast((res && res.error) || '抓取失败，可稍后重试。', 'bad');
+          
+          
+          
+          
           
           
           
@@ -10852,7 +18010,15 @@
           
           
           
+          
+          
+          
+          
           });
+          
+          
+          
+          
           
           
           
@@ -10862,11 +18028,23 @@
           
           
           
+          
+          
+          
+          
           UI.previewAnnotations = !UI.previewAnnotations;
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -10875,7 +18053,15 @@
           
           
           
+          
+          
+          
+          
           UI.previewWire = !UI.previewWire;
+          
+          
+          
+          
           
           
           
@@ -10883,12 +18069,59 @@
           
           
           
+          
+          
+          
+          
           break;
+        case 'set-cmos-model': {
+          const L = window.FRAME_CHIPS;
+          const draft = game.drafts.camera;
+          if (!L || !draft) break;
+          const models = L.cmosModelsFor(game.company.id) || [];
+          const m = models.find(x => x.id === el.dataset.id);
+          if (!m) break;
+          if (game.company.tech.sensor < (m.tech || 1)) { showToast(`该型号需要传感器技术 Lv.${m.tech}`, 'bad'); break; }
+          draft.sensor.modelId = m.id;
+          draft.sensor.format = m.format;
+          draft.sensor.mp = m.mp;
+          draft.sensor.type = m.readout === 'stacked' ? 'stacked' : m.readout === 'partial' ? 'bsi' : 'bsi';
+          draft.sensor.dynamicRange = m.dr;
+          draft.sensor.colorDepth = m.colorDepth;
+          persist();
+          renderApp({ preserveScroll: true });
+          showToast(`已选用 ${m.name}`, 'good', 'CMOS 型号');
+          break;
+        }
+        case 'set-processor': {
+          const L = window.FRAME_CHIPS;
+          const draft = game.drafts.camera;
+          if (!L || !draft) break;
+          const list = L.processorsFor(game.company.id) || [];
+          const proc = list.find(x => x.id === el.dataset.id);
+          if (!proc) break;
+          if (game.company.tech.af < (proc.techAf || 1)) { showToast(`需要自动对焦技术 Lv.${proc.techAf}`, 'bad'); break; }
+          draft.chip = draft.chip || {};
+          draft.chip.processorId = proc.id;
+          draft.chip.afSource = 'inhouse';
+          persist();
+          renderApp({ preserveScroll: true });
+          showToast(`已换用 ${proc.name}`, 'good', '影像处理器');
+          break;
+        }
         case 'set-sensor-format':
           
           
           
+          
+          
+          
+          
           setSensorFormat(el.dataset.value);
+          
+          
+          
+          
           
           
           
@@ -10897,7 +18130,15 @@
           
           
           
+          
+          
+          
+          
           UI.lensStep = clamp(Number(el.dataset.step) || 1, 1, 3);
+          
+          
+          
+          
           
           
           
@@ -10905,7 +18146,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -10913,7 +18162,15 @@
           
           
           
+          
+          
+          
+          
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          
+          
+          
           
           
           
@@ -10923,7 +18180,15 @@
           
           
           
+          
+          
+          
+          
           if (UI.lensStep >= 3) { openModal('launch-confirm', { kind: 'lens' }); break; }
+          
+          
+          
+          
           
           
           
@@ -10931,7 +18196,15 @@
           
           
           
+          
+          
+          
+          
           if (game.drafts.lens) game.drafts.lens._uiStep = UI.lensStep;
+          
+          
+          
+          
           
           
           
@@ -10939,11 +18212,23 @@
           
           
           
+          
+          
+          
+          
           renderApp();
           
           
           
+          
+          
+          
+          
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          
+          
+          
           
           
           
@@ -10952,7 +18237,15 @@
           
           
           
+          
+          
+          
+          
           UI.lensStep = Math.max(1, UI.lensStep - 1);
+          
+          
+          
+          
           
           
           
@@ -10960,7 +18253,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -10968,7 +18269,15 @@
           
           
           
+          
+          
+          
+          
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          
+          
+          
           
           
           
@@ -10977,11 +18286,23 @@
           
           
           
+          
+          
+          
+          
           UI.lensView = el.dataset.view === 'cutaway' ? 'cutaway' : 'side';
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -10990,7 +18311,15 @@
           
           
           
+          
+          
+          
+          
           const lens = game.drafts.lens;
+          
+          
+          
+          
           
           
           
@@ -10998,7 +18327,15 @@
           
           
           
+          
+          
+          
+          
           const mount = el.dataset.mount;
+          
+          
+          
+          
           
           
           
@@ -11006,7 +18343,15 @@
           
           
           
+          
+          
+          
+          
           if (!def) break;
+          
+          
+          
+          
           
           
           
@@ -11014,7 +18359,15 @@
           
           
           
+          
+          
+          
+          
           const currentCov = D.SENSOR_FORMATS[lens.coverage];
+          
+          
+          
+          
           
           
           
@@ -11022,7 +18375,15 @@
           
           
           
+          
+          
+          
+          
           commitChange();
+          
+          
+          
+          
           
           
           
@@ -11032,7 +18393,15 @@
           
           
           
+          
+          
+          
+          
           applyLensTemplate(el.dataset.template);
+          
+          
+          
+          
           
           
           
@@ -11041,7 +18410,15 @@
           
           
           
+          
+          
+          
+          
           const lens = game.drafts.lens;
+          
+          
+          
+          
           
           
           
@@ -11049,7 +18426,15 @@
           
           
           
+          
+          
+          
+          
           const a = Number(el.dataset.min), b = Number(el.dataset.max);
+          
+          
+          
+          
           
           
           
@@ -11057,7 +18442,15 @@
           
           
           
+          
+          
+          
+          
           commitChange();
+          
+          
+          
+          
           
           
           
@@ -11067,7 +18460,15 @@
           
           
           
+          
+          
+          
+          
           const scope = currentStudioScope(el);
+          
+          
+          
+          
           
           
           
@@ -11075,7 +18476,15 @@
           
           
           
+          
+          
+          
+          
           if (!obj || !el.dataset.path) break;
+          
+          
+          
+          
           
           
           
@@ -11083,7 +18492,15 @@
           
           
           
+          
+          
+          
+          
           const raw = el.dataset.path.split('.').reduce((o, k) => o && o[k], obj);
+          
+          
+          
+          
           
           
           
@@ -11091,11 +18508,23 @@
           
           
           
+          
+          
+          
+          
           setDeepValue(obj, el.dataset.path, next);
           
           
           
+          
+          
+          
+          
           commitChange();
+          
+          
+          
+          
           
           
           
@@ -11105,7 +18534,15 @@
           
           
           
+          
+          
+          
+          
           openModal('launch-confirm', { kind: 'lens' });
+          
+          
+          
+          
           
           
           
@@ -11114,8 +18551,16 @@
           
           
           
+          
+          
+          
+          
           break;
         case 'product-tab':
+          
+          
+          
+          
           
           
           
@@ -11123,7 +18568,15 @@
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -11132,11 +18585,23 @@
           
           
           
+          
+          
+          
+          
           UI.productFilter = el.dataset.filter || 'all';
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -11145,7 +18610,15 @@
           
           
           
+          
+          
+          
+          
           openModal('product', { id: el.dataset.id });
+          
+          
+          
+          
           
           
           
@@ -11154,7 +18627,15 @@
           
           
           
+          
+          
+          
+          
           if (game.lastReport) openModal('report', { report: game.lastReport });
+          
+          
+          
+          
           
           
           
@@ -11163,7 +18644,15 @@
           
           
           
+          
+          
+          
+          
           closeModal();
+          
+          
+          
+          
           
           
           
@@ -11171,11 +18660,23 @@
           
           
           
+          
+          
+          
+          
           renderApp();
           
           
           
+          
+          
+          
+          
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          
+          
+          
           
           
           
@@ -11184,7 +18685,15 @@
           
           
           
+          
+          
+          
+          
           closeModal();
+          
+          
+          
+          
           
           
           
@@ -11192,7 +18701,15 @@
           
           
           
+          
+          
+          
+          
           renderApp();
+          
+          
+          
+          
           
           
           
@@ -11201,7 +18718,15 @@
           
           
           
+          
+          
+          
+          
           const val = Number(document.getElementById('product-price-input')?.value);
+          
+          
+          
+          
           
           
           
@@ -11209,7 +18734,15 @@
           
           
           
+          
+          
+          
+          
           if (!res.ok) { showToast(res.error, 'bad'); break; }
+          
+          
+          
+          
           
           
           
@@ -11217,7 +18750,15 @@
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -11225,7 +18766,15 @@
           
           
           
+          
+          
+          
+          
           showToast('售价已更新。', 'good');
+          
+          
+          
+          
           
           
           
@@ -11235,7 +18784,15 @@
           
           
           
+          
+          
+          
+          
           const val = document.getElementById('product-kit-select')?.value || '';
+          
+          
+          
+          
           
           
           
@@ -11243,7 +18800,15 @@
           
           
           
+          
+          
+          
+          
           if (!res.ok) { showToast(res.error, 'bad'); break; }
+          
+          
+          
+          
           
           
           
@@ -11251,7 +18816,15 @@
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -11259,7 +18832,15 @@
           
           
           
+          
+          
+          
+          
           showToast(val ? '套机镜头已设置。' : '已切换为仅机身销售。', 'good');
+          
+          
+          
+          
           
           
           
@@ -11269,7 +18850,15 @@
           
           
           
+          
+          
+          
+          
           const p = findGameProduct(el.dataset.id);
+          
+          
+          
+          
           
           
           
@@ -11277,7 +18866,15 @@
           
           
           
+          
+          
+          
+          
           askConfirm({
+          
+          
+          
+          
           
           
           
@@ -11285,7 +18882,15 @@
           
           
           
+          
+          
+          
+          
             messageHtml: `<div class="callout-title">${icon('alert')} 从产品线退役</div>库存仍会继续销售，但不会再自动生产。现有用户售后与固件支持仍会继续。`,
+          
+          
+          
+          
           
           
           
@@ -11293,7 +18898,15 @@
           
           
           
+          
+          
+          
+          
               const res = E.discontinueProduct(game, p.id);
+          
+          
+          
+          
           
           
           
@@ -11301,7 +18914,15 @@
           
           
           
+          
+          
+          
+          
               persist();
+          
+          
+          
+          
           
           
           
@@ -11309,7 +18930,15 @@
           
           
           
+          
+          
+          
+          
               refreshProductModal(p.id);
+          
+          
+          
+          
           
           
           
@@ -11317,11 +18946,23 @@
           
           
           
+          
+          
+          
+          
             }
           
           
           
+          
+          
+          
+          
           });
+          
+          
+          
+          
           
           
           
@@ -11331,7 +18972,15 @@
           
           
           
+          
+          
+          
+          
           const p = findGameProduct(el.dataset.id);
+          
+          
+          
+          
           
           
           
@@ -11339,7 +18988,15 @@
           
           
           
+          
+          
+          
+          
           const res = E.toggleProductStatus(game, p.id);
+          
+          
+          
+          
           
           
           
@@ -11347,7 +19004,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -11355,11 +19020,23 @@
           
           
           
+          
+          
+          
+          
           refreshProductModal(p.id);
           
           
           
+          
+          
+          
+          
           showToast('产品已重新上架。', 'good');
+          
+          
+          
+          
           
           
           
@@ -11369,7 +19046,15 @@
           
           
           
+          
+          
+          
+          
           const res = E.startResearch(game, el.dataset.tech);
+          
+          
+          
+          
           
           
           
@@ -11377,7 +19062,15 @@
           
           
           
+          
+          
+          
+          
           persist(true);
+          
+          
+          
+          
           
           
           
@@ -11385,7 +19078,15 @@
           
           
           
+          
+          
+          
+          
           showToast(`已立项：${D.TECHS[el.dataset.tech].name} Lv.${res.project.targetLevel}。`, 'good', '研发启动');
+          
+          
+          
+          
           
           
           
@@ -11395,7 +19096,15 @@
           
           
           
+          
+          
+          
+          
           const p = (game.company.projects || []).find(x => x.id === el.dataset.id);
+          
+          
+          
+          
           
           
           
@@ -11403,7 +19112,15 @@
           
           
           
+          
+          
+          
+          
           askConfirm({
+          
+          
+          
+          
           
           
           
@@ -11411,7 +19128,15 @@
           
           
           
+          
+          
+          
+          
             messageHtml: `<div class="callout-title">${icon('info')} 35% 预算回收</div>项目剩余进度将丢失，但团队会保留部分成果。是否继续？`,
+          
+          
+          
+          
           
           
           
@@ -11419,7 +19144,15 @@
           
           
           
+          
+          
+          
+          
               const res = E.cancelResearch(game, p.id);
+          
+          
+          
+          
           
           
           
@@ -11427,7 +19160,15 @@
           
           
           
+          
+          
+          
+          
               persist();
+          
+          
+          
+          
           
           
           
@@ -11435,7 +19176,15 @@
           
           
           
+          
+          
+          
+          
               showToast(`项目已中止，回收 ${money(res.refund)}。`, 'info');
+          
+          
+          
+          
           
           
           
@@ -11443,7 +19192,15 @@
           
           
           
+          
+          
+          
+          
           });
+          
+          
+          
+          
           
           
           
@@ -11453,7 +19210,15 @@
           
           
           
+          
+          
+          
+          
           const res = E.hireStaff(game, el.dataset.role);
+          
+          
+          
+          
           
           
           
@@ -11461,7 +19226,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -11469,7 +19242,15 @@
           
           
           
+          
+          
+          
+          
           showToast(`已招聘 1 名${D.STAFF_ROLES[el.dataset.role].name}。`, 'good');
+          
+          
+          
+          
           
           
           
@@ -11479,7 +19260,15 @@
           
           
           
+          
+          
+          
+          
           const res = E.fireStaff(game, el.dataset.role);
+          
+          
+          
+          
           
           
           
@@ -11487,7 +19276,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -11495,7 +19292,15 @@
           
           
           
+          
+          
+          
+          
           showToast(`已解雇 1 名${D.STAFF_ROLES[el.dataset.role].name}。`, 'info');
+          
+          
+          
+          
           
           
           
@@ -11505,7 +19310,15 @@
           
           
           
+          
+          
+          
+          
           const res = E.setManufacturing(game, 'partner', el.dataset.odm);
+          
+          
+          
+          
           
           
           
@@ -11513,7 +19326,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -11521,7 +19342,15 @@
           
           
           
+          
+          
+          
+          
           showToast('制造伙伴已切换。现有产品的制造成本已锁定。', 'good');
+          
+          
+          
+          
           
           
           
@@ -11531,7 +19360,15 @@
           
           
           
+          
+          
+          
+          
           const res = E.setManufacturing(game, 'self');
+          
+          
+          
+          
           
           
           
@@ -11539,7 +19376,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -11547,7 +19392,15 @@
           
           
           
+          
+          
+          
+          
           showToast('已切换到自有产线。', 'good');
+          
+          
+          
+          
           
           
           
@@ -11557,7 +19410,15 @@
           
           
           
+          
+          
+          
+          
           const res = E.upgradeFactory(game);
+          
+          
+          
+          
           
           
           
@@ -11565,7 +19426,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -11573,7 +19442,15 @@
           
           
           
+          
+          
+          
+          
           showToast(`工厂升级完成：${D.FACTORY_LEVELS[res.level].name}。`, 'good');
+          
+          
+          
+          
           
           
           
@@ -11583,7 +19460,15 @@
           
           
           
+          
+          
+          
+          
           const res = E.selectSensorSupplier(game, el.dataset.supplier);
+          
+          
+          
+          
           
           
           
@@ -11591,11 +19476,23 @@
           
           
           
+          
+          
+          
+          
           persist();
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -11603,197 +19500,509 @@
           
           
           
+          
+          
+          
+          
           break;
         }
         case 'chip-tab':
+          
           UI.chipTab = ['cmos', 'af', 'procurement'].includes(el.dataset.tab) ? el.dataset.tab : 'cmos';
+          
           renderApp({ preserveScroll: true });
+          
           break;
         case 'open-chip-program': {
+          
           const kind = el.dataset.kind === 'af' ? 'af' : 'cmos';
+          
           UI.chipDraft = UI.chipDraft || {};
+          
           let base;
+          
           if (kind === 'af') {
+          
             base = { arch: 'fullpixel', tier: 'advanced', budget: 'balanced' };
+          
           } else {
+          
             const targetId = D.CMOS_TARGETS[el.dataset.target] ? el.dataset.target : 'ff';
+          
             const target = D.CMOS_TARGETS[targetId];
+          
             base = { target: targetId, mp: target.mpOptions[0], type: (game.company.tech.sensor || 1) >= 4 ? 'stacked' : 'bsi', budget: 'balanced' };
+          
           }
+          
           UI.chipDraft[kind] = Object.assign(base, UI.chipDraft[kind] || {});
+          
           if (el.dataset.target && D.CMOS_TARGETS[el.dataset.target]) {
+          
             const target = D.CMOS_TARGETS[el.dataset.target];
+          
             UI.chipDraft[kind].target = target.id;
+          
             UI.chipDraft[kind].mp = target.mpOptions.includes(Number(UI.chipDraft[kind].mp)) ? Number(UI.chipDraft[kind].mp) : target.mpOptions[0];
+          
           }
+          
           openModal('chip-program', { kind });
+          
           break;
         }
         case 'chip-config': {
+          
           const kind = el.dataset.kind === 'af' ? 'af' : 'cmos';
+          
           UI.chipDraft = UI.chipDraft || {};
+          
           const cfg = Object.assign({}, UI.chipDraft[kind] || {});
+          
           cfg[el.dataset.path] = el.dataset.value;
+          
           if (el.dataset.path === 'target') {
+          
             const target = D.CMOS_TARGETS[cfg.target];
+          
             if (target && !target.mpOptions.includes(Number(cfg.mp))) cfg.mp = target.mpOptions[0];
+          
           }
+          
           UI.chipDraft[kind] = cfg;
+          
           renderModal();
+          
           break;
         }
-        case 'start-chip-program': {
-          const kind = el.dataset.kind === 'af' ? 'af' : 'cmos';
-          const cfg = (UI.chipDraft && UI.chipDraft[kind]) || {};
-          const res = E.startChipProgram(game, kind, cfg);
+        case 'map-select': {
+          window.__MAP_SELECTED__ = el.dataset.id;
+          renderApp({ preserveScroll: true });
+          break;
+        }
+        case 'map-invest': {
+          const DE = window.DiplomacyEngine;
+          if (!DE) break;
+          const res = DE.investRegion(game, el.dataset.id);
           if (!res.ok) { showToast(res.error, 'bad'); break; }
           persist();
-          closeModal();
           renderApp({ preserveScroll: true });
+          showToast(res.text, 'good', '区域投入');
+          break;
+        }
+        case 'diplo-select': {
+          window.__DIPLO_SELECTED__ = el.dataset.id;
+          renderApp({ preserveScroll: true });
+          break;
+        }
+        case 'diplo-do': {
+          const DE = window.DiplomacyEngine;
+          if (!DE) break;
+          const act = DE.ACTION_MAP[el.dataset.id];
+          const brandId = el.dataset.brand;
+          const brand = (game.market.aiBrands || []).find(b => b.id === brandId);
+          if (!act || !brand) break;
+          askConfirm({
+            title: `对 ${brand.name} 执行「${act.name}」？`,
+            eyebrow: 'DIPLOMACY / 外交',
+            tone: act.tone === 'danger' ? 'danger' : 'default',
+            messageHtml: `<div class="callout"><div class="callout-title">${icon('info')} ${esc(act.desc)}</div>
+              代价：${act.cost ? money(act.cost) + ' 现金' : '无现金'}${act.pc ? ' · ' + act.pc + ' 政治资本' : ''} · 持续 ${act.months} 个月<br>
+              预估：${esc((() => { try { return act.estimate(game, brand); } catch (e) { return ''; } })())}</div>`,
+            confirmLabel: '执行',
+            onConfirm: () => {
+              const res = DE.executeAction(game, act.id, brandId);
+              if (!res.ok) { showToast(res.error, 'bad'); return; }
+              persist();
+              renderApp({ preserveScroll: true });
+              showToast(res.text, act.tone === 'danger' ? 'warn' : 'good', '外交');
+            }
+          });
+          break;
+        }
+        case 'fx-zoom': {
+          const d = el.dataset.d;
+          if (window.FocusUI && window.FocusUI.zoomBy) window.FocusUI.zoomBy(d);
+          break;
+        }
+        case 'cmd-zoom': {
+          const g = window.__CMD_GLOBE__;
+          if (g) {
+            const d = el.dataset.d;
+            if (d === 'in') g.zoomBy(1.15);
+            else if (d === 'out') g.zoomBy(0.87);
+            else { g.zoomBy(1); }
+          }
+          break;
+        }
+        case 'news-choose': {
+          const eid = el.dataset.id, idx = Number(el.dataset.i);
+          if (window.FrameEvents) window.FrameEvents.choose(game, eid, idx);
+          persist();
+          renderApp({ preserveScroll: true });
+          break;
+        }
+        case 'news-skip': {
+          if (game.events && game.events.pending) {
+            game.events.pending = game.events.pending.filter(x => x !== el.dataset.id);
+          }
+          renderApp({ preserveScroll: true });
+          break;
+        }
+        case 'news-next': {
+          renderApp({ preserveScroll: true });
+          break;
+        }
+        case 'cmd-open': {
+          const page = el.dataset.page;
+          if (window.CommandUI) window.CommandUI.openPanel(page);
+          break;
+        }
+        case 'cmd-close': {
+          if (window.CommandUI) window.CommandUI.closePanel();
+          break;
+        }
+        case 'focus-kind': {
+          game.focus.kind = (el.dataset.kind === 'pol' || el.dataset.kind === 'diplo') ? 'pol' : 'dev';
+          if (window.FocusEngine) game.focus.treeId = window.FocusEngine.treeKey(game.company, game.focus.kind);
+          window.__FX_SELECTED__ = null;
+          renderApp({ preserveScroll: true });
+          break;
+        }
+        case 'focus-select': {
+          window.__FX_SELECTED__ = el.dataset.id;
+          const slot = document.getElementById('fx-detail-slot');
+          if (slot && window.FocusUI) {
+            slot.innerHTML = window.FocusUI.renderDetail(game, el.dataset.id);
+            document.querySelectorAll('.fxg').forEach(function (g) {
+              g.style.outline = '';
+              if (g.dataset.id === el.dataset.id) g.style.outline = '1px solid #d8a65a';
+            });
+          } else {
+            renderApp({ preserveScroll: true });
+          }
+          break;
+        }
+        case 'focus-start': {
+          const FE = window.FocusEngine;
+          if (!FE) break;
+          const res = FE.startFocus(game, el.dataset.id);
+          if (!res.ok) { showToast(res.error, 'bad'); break; }
+          persist();
+          renderApp({ preserveScroll: true });
+          showToast(`已开始推进「${res.node.title}」，预计 ${res.node.months} 个月完成。`, 'good', '决策');
+          break;
+        }
+        case 'focus-cancel': {
+          const FE = window.FocusEngine;
+          if (!FE) break;
+          const res = FE.cancelFocus(game, el.dataset.id);
+          if (!res.ok) { showToast(res.error, 'bad'); break; }
+          persist();
+          renderApp({ preserveScroll: true });
+          showToast('决策推进已中止，返还一半决策点数。', 'warn');
+          break;
+        }
+        case 'acq-buy': {
+          const FE = window.FocusEngine;
+          if (!FE) break;
+          const brand = (game.market.aiBrands || []).find(b => b.id === el.dataset.id);
+          if (!brand) break;
+          const cost = FE.acquisitionCost(game, brand);
+          askConfirm({
+            title: `收购 ${brand.name}`,
+            messageHtml: `<div class="callout"><div class="callout-title">${icon('wallet')} 交易金额 ${money(cost)}</div>收购后 ${esc(brand.name)} 的产品线、对焦芯片与研发团队将并入你的公司，其市场份额也会转移给你。代价是所有对手对你的态度 -12。</div>`,
+            confirmLabel: '确认收购',
+            onConfirm: () => {
+              const res = FE.acquireBrand(game, brand.id, {});
+              if (!res.ok) { showToast(res.error, 'bad'); return; }
+              persist();
+              renderApp({ preserveScroll: true });
+              showToast(`${brand.name} 已并入 ${game.company.name}，花费 ${money(res.cost)}。`, 'good', '收购完成');
+            }
+          });
+          break;
+        }        case 'start-chip-program': {
+          
+          const kind = el.dataset.kind === 'af' ? 'af' : 'cmos';
+          
+          const cfg = (UI.chipDraft && UI.chipDraft[kind]) || {};
+          
+          const res = E.startChipProgram(game, kind, cfg);
+          
+          if (!res.ok) { showToast(res.error, 'bad'); break; }
+          
+          persist();
+          
+          closeModal();
+          
+          renderApp({ preserveScroll: true });
+          
           showToast(`${res.estimate.name} 已立项，预计 ${res.estimate.months} 个月完成。`, 'good', '芯片立项');
+          
           break;
         }
         case 'cancel-chip-program': {
+          
           const program = (game.company.chipPrograms || []).find(p => p.id === el.dataset.id);
+          
           if (!program) break;
+          
           game.company.chipPrograms = game.company.chipPrograms.filter(p => p.id !== program.id);
+          
           persist();
+          
           renderApp({ preserveScroll: true });
+          
           showToast(`${program.name} 已中止，前期投入不会退回。`, 'warn');
+          
           break;
         }
         case 'upgrade-chip-lab': {
+          
           const res = E.upgradeChipLab(game);
+          
           if (!res.ok) { showToast(res.error, 'bad'); break; }
+          
           persist();
+          
           renderApp({ preserveScroll: true });
+          
           showToast(`芯片实验室升级至 Lv.${res.level}，并行槽位与规格上限提高。`, 'good', '实验室升级');
+          
           break;
         }
         case 'chip-use': {
+          
           const kind = el.dataset.kind === 'cmos' ? 'cmos' : 'af';
+          
           const all = kind === 'cmos' ? (game.company.cmosChips || []) : (game.company.afChips || []);
+          
           const chosen = all.find(c => c.id === el.dataset.id) || all[0];
+          
           if (!chosen) break;
+          
           const res = E.setChipStrategy(game, kind, 'inhouse');
+          
           if (!res.ok) { showToast(res.error, 'bad'); break; }
+          
           if (game.drafts.camera) {
+          
             if (kind === 'cmos') E.applyCmosChipToDraft(game.drafts.camera, chosen);
+          
             else E.applyAfChipToDraft(game.drafts.camera, chosen);
+          
           }
+          
           persist();
+          
           renderApp({ preserveScroll: true });
+          
           showToast(`${chosen.name} 已设为新设计的默认芯片。`, 'good', '芯片策略');
+          
           break;
         }
         case 'set-chip-source': {
+          
           const kind = el.dataset.kind === 'af' ? 'af' : 'cmos';
+          
           const source = el.dataset.source === 'inhouse' ? 'inhouse' : 'procure';
+          
           const draft = game.drafts.camera;
+          
           if (!draft) break;
+          
           draft.chip = draft.chip || { cmosSource: 'procure', afSource: 'procure' };
+          
           const chips = kind === 'cmos' ? (game.company.cmosChips || []) : (game.company.afChips || []);
+          
           if (source === 'inhouse' && !chips.length) {
+          
             showToast('还没有可用的自研芯片，请先去芯片实验室完成一个项目。', 'bad');
+          
             break;
+          
           }
+          
           if (kind === 'cmos') {
+          
             draft.chip.cmosSource = source;
+          
             if (source === 'inhouse') {
+          
               const best = E.bestCmosChip(game.company, draft.sensor.format, draft.sensor.mp, draft.sensor.type) || chips[0];
+          
               draft.chip.cmosId = best.id;
+          
               if (!E.bestCmosChip(game.company, draft.sensor.format, draft.sensor.mp, draft.sensor.type)) {
+          
                 showToast('自研 CMOS 的规格与当前传感器不一致：可点「采用该芯片规格」或先调整画幅/结构。', 'warn');
+          
               }
+          
             } else {
+          
               draft.chip.cmosId = null;
+          
             }
+          
           } else {
+          
             draft.chip.afSource = source;
+          
             draft.chip.afId = source === 'inhouse' ? chips[0].id : null;
+          
           }
+          
           persist();
+          
           renderApp({ preserveScroll: true });
+          
           break;
         }
         case 'adopt-cmos-chip': {
+          
           const draft = game.drafts.camera;
+          
           if (!draft) break;
+          
           const all = game.company.cmosChips || [];
+          
           const chip = all.find(c => c.id === el.dataset.id)
+          
             || E.bestCmosChip(game.company, draft.sensor.format, draft.sensor.mp, draft.sensor.type)
+          
             || all[0];
+          
           if (!chip) break;
+          
           E.applyCmosChipToDraft(draft, chip);
+          
           persist();
+          
           renderApp({ preserveScroll: true });
+          
           showToast(`已采用 ${chip.name} 的 ${chip.mp}MP ${D.SENSOR_TYPES[chip.type].name} 规格。`, 'good', '自研 CMOS');
+          
           break;
         }
         case 'adopt-af-chip': {
+          
           const draft = game.drafts.camera;
+          
           if (!draft) break;
+          
           const all = game.company.afChips || [];
+          
           const chip = all.find(c => c.id === el.dataset.id) || all[0];
+          
           if (!chip) break;
+          
           E.applyAfChipToDraft(draft, chip);
+          
           persist();
+          
           renderApp({ preserveScroll: true });
+          
           showToast(`已使用 ${chip.name}，对焦加成 +${chip.bonus}。`, 'good', '自研 AF');
+          
           break;
         }
         case 'open-launch-planner': {
+          
           const kind = el.dataset.kind === 'lens' ? 'lens' : 'camera';
+          
           const draft = kind === 'camera' ? game.drafts.camera : game.drafts.lens;
+          
           if (!draft) { showToast('请先完成一个设计草稿。', 'bad'); break; }
+          
           E.normalizeLaunchEvent(draft, game.company);
+          
           openModal('launch-event', { kind });
+          
           break;
         }
         case 'event-set': {
+          
           const kind = el.dataset.kind === 'lens' ? 'lens' : 'camera';
+          
           const draft = kind === 'camera' ? game.drafts.camera : game.drafts.lens;
+          
           if (!draft) break;
+          
           if (el.dataset.path === 'campaign') draft.campaign = el.dataset.value;
+          
           else {
+          
             draft.launchEvent = draft.launchEvent || {};
+          
             draft.launchEvent[el.dataset.path] = el.dataset.value;
+          
           }
+          
           persist();
+          
           renderModal();
+          
           break;
         }
         case 'event-preorder': {
+          
           const kind = el.dataset.kind === 'lens' ? 'lens' : 'camera';
+          
           const draft = kind === 'camera' ? game.drafts.camera : game.drafts.lens;
+          
           if (!draft) break;
+          
           draft.launchEvent = draft.launchEvent || {};
+          
           draft.launchEvent.preorder = !draft.launchEvent.preorder;
+          
           persist();
+          
           renderModal();
+          
           break;
         }
         case 'event-confirm': {
+          
           persist();
+          
           closeModal();
+          
           renderApp({ preserveScroll: true });
+          
           showToast('发布会方案已保存，可在上市评审中继续。', 'good', '发布会');
+          
           break;
         }
         case 'event-confirm-launch': {
+          
           const kind = el.dataset.kind === 'lens' ? 'lens' : 'camera';
+          
           persist();
+          
           closeModal();
+          
           openModal('launch-confirm', { kind });
+          
           break;
         }
         case 'launch-review':
+          
           openModal('launch-confirm', { kind: el.dataset.kind === 'lens' ? 'lens' : 'camera' });
+          
           break;
         case 'open-launch-report':
+          
           openModal('launch-report', { id: el.dataset.id });
+          
           break;
         case 'toggle-auto-production': {
+          
+          
+          
+          
           
           
           
@@ -11801,7 +20010,15 @@
           
           
           
+          
+          
+          
+          
           if (!p) break;
+          
+          
+          
+          
           
           
           
@@ -11809,7 +20026,15 @@
           
           
           
+          
+          
+          
+          
           if (!p.autoProduction && !p.monthlyProduction) p.monthlyProduction = Math.max(100, Math.round((p.lastForecast || 500) / 100) * 100);
+          
+          
+          
+          
           
           
           
@@ -11817,7 +20042,15 @@
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -11827,11 +20060,23 @@
           
           
           
+          
+          
+          
+          
           UI.supplyTab = el.dataset.tab || 'production';
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -11840,11 +20085,23 @@
           
           
           
+          
+          
+          
+          
           UI.marketTab = el.dataset.tab || 'overview';
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -11853,11 +20110,23 @@
           
           
           
+          
+          
+          
+          
           UI.marketCategory = el.dataset.filter || 'all';
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -11866,11 +20135,23 @@
           
           
           
+          
+          
+          
+          
           UI.marketSort = el.dataset.sort || 'new';
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -11879,7 +20160,15 @@
           
           
           
+          
+          
+          
+          
           game.company.marketingBudget = Math.max(0, Math.round(Number(el.dataset.value) || 0));
+          
+          
+          
+          
           
           
           
@@ -11887,7 +20176,15 @@
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -11897,7 +20194,15 @@
           
           
           
+          
+          
+          
+          
           const res = E.runBrandCampaign(game, el.dataset.campaign);
+          
+          
+          
+          
           
           
           
@@ -11905,7 +20210,15 @@
           
           
           
+          
+          
+          
+          
           persist(true);
+          
+          
+          
+          
           
           
           
@@ -11913,7 +20226,15 @@
           
           
           
+          
+          
+          
+          
           showToast(`${res.campaign.name} 已执行：品牌曝光 +${res.awareGain.toFixed(1)}，口碑 +${res.repGain.toFixed(1)}。`, 'good', '营销战役');
+          
+          
+          
+          
           
           
           
@@ -11923,7 +20244,15 @@
           
           
           
+          
+          
+          
+          
           const res = E.takeLoan(game, Number(el.dataset.amount));
+          
+          
+          
+          
           
           
           
@@ -11931,7 +20260,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -11939,7 +20276,15 @@
           
           
           
+          
+          
+          
+          
           showToast(`已获得 ${money(res.amount)} 贷款。`, 'good', '融资到账');
+          
+          
+          
+          
           
           
           
@@ -11949,7 +20294,15 @@
           
           
           
+          
+          
+          
+          
           const input = document.getElementById('loan-amount');
+          
+          
+          
+          
           
           
           
@@ -11957,7 +20310,15 @@
           
           
           
+          
+          
+          
+          
           if (!amount) { showToast('请输入贷款金额。', 'bad'); break; }
+          
+          
+          
+          
           
           
           
@@ -11965,7 +20326,15 @@
           
           
           
+          
+          
+          
+          
           if (!res.ok) { showToast(res.error, 'bad'); break; }
+          
+          
+          
+          
           
           
           
@@ -11973,11 +20342,23 @@
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
           
           
           
+          
+          
+          
+          
           showToast(`已获得 ${money(res.amount)} 贷款。`, 'good', '融资到账');
+          
+          
+          
+          
           
           
           
@@ -11987,7 +20368,15 @@
           
           
           
+          
+          
+          
+          
           const amount = Math.min(game.company.debt, game.company.cash);
+          
+          
+          
+          
           
           
           
@@ -11995,7 +20384,15 @@
           
           
           
+          
+          
+          
+          
           const res = E.repayLoan(game, amount);
+          
+          
+          
+          
           
           
           
@@ -12003,7 +20400,15 @@
           
           
           
+          
+          
+          
+          
           persist();
+          
+          
+          
+          
           
           
           
@@ -12011,13 +20416,50 @@
           
           
           
+          
+          
+          
+          
           showToast(`已偿还 ${money(res.amount)} 贷款。`, 'good');
+          
+          
+          
+          
           
           
           
           break;
         }
-        case 'save-game': {
+        case 'adv-appoint': {
+        const r = window.FRAME_ADVISOR.appoint(game, event.target.dataset.id);
+        showToast(r.ok ? '已聘用 ' + r.advisor.name + '，签约费 ' + (r.paid / 1e8).toFixed(1) + ' 亿' : r.error, r.ok ? 'good' : 'bad');
+        renderApp(); break;
+      }
+      case 'adv-dismiss': {
+        const r = window.FRAME_ADVISOR.dismiss(game, event.target.dataset.slot);
+        showToast(r.ok ? '已解约，赔付 ' + (r.fee / 1e8).toFixed(2) + ' 亿' : r.error, r.ok ? 'info' : 'bad');
+        renderApp(); break;
+      }
+      case 'staff-hire': {
+        const r = window.FRAME_STAFF.act(game, event.target.dataset.dept, 'hire');
+        showToast(r.ok ? '扩招 ' + r.delta + ' 人' : r.error, r.ok ? 'good' : 'bad');
+        renderApp(); break;
+      }
+      case 'staff-layoff': {
+        const r = window.FRAME_STAFF.act(game, event.target.dataset.dept, 'layoff');
+        showToast(r.ok ? '裁撤 ' + (-r.delta) + ' 人，士气下滑' : r.error, r.ok ? 'warn' : 'bad');
+        renderApp(); break;
+      }
+      case 'staff-train': {
+        const r = window.FRAME_STAFF.act(game, event.target.dataset.dept, 'train');
+        showToast(r.ok ? '培训完成，士气提升' : r.error, r.ok ? 'good' : 'bad');
+        renderApp(); break;
+      }
+      case 'save-game': {
+          
+          
+          
+          
           
           
           
@@ -12025,11 +20467,23 @@
           
           
           
+          
+          
+          
+          
           if (r.ok) { updateSaveState('saved'); showToast('游戏已保存到本地。', 'good'); }
           
           
           
+          
+          
+          
+          
           else showToast(r.error, 'bad');
+          
+          
+          
+          
           
           
           
@@ -12039,7 +20493,15 @@
           
           
           
+          
+          
+          
+          
           downloadSave();
+          
+          
+          
+          
           
           
           
@@ -12048,7 +20510,15 @@
           
           
           
+          
+          
+          
+          
           askConfirm({
+          
+          
+          
+          
           
           
           
@@ -12056,7 +20526,15 @@
           
           
           
+          
+          
+          
+          
             messageHtml: `<div class="callout-title">${icon('alert')} 当前存档将被删除</div>这会清除你在 ${esc(E.monthLabel(game.monthIndex))} 的全部进度。若要保留当前公司，请先导出存档。`,
+          
+          
+          
+          
           
           
           
@@ -12064,7 +20542,15 @@
           
           
           
+          
+          
+          
+          
           });
+          
+          
+          
+          
           
           
           
@@ -12073,7 +20559,15 @@
           
           
           
+          
+          
+          
+          
           returnToTitle();
+          
+          
+          
+          
           
           
           
@@ -12082,7 +20576,15 @@
           
           
           
+          
+          
+          
+          
           game.settings.reducedMotion = !game.settings.reducedMotion;
+          
+          
+          
+          
           
           
           
@@ -12090,7 +20592,15 @@
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -12099,7 +20609,15 @@
           
           
           
+          
+          
+          
+          
           game.settings.showTips = !game.settings.showTips;
+          
+          
+          
+          
           
           
           
@@ -12107,7 +20625,15 @@
           
           
           
+          
+          
+          
+          
           renderApp({ preserveScroll: true });
+          
+          
+          
+          
           
           
           
@@ -12116,7 +20642,15 @@
           
           
           
+          
+          
+          
+          
           const fn = UI.modal && UI.modal.data && UI.modal.data.onConfirm;
+          
+          
+          
+          
           
           
           
@@ -12124,7 +20658,15 @@
           
           
           
+          
+          
+          
+          
           if (typeof fn === 'function') setTimeout(fn, 60);
+          
+          
+          
+          
           
           
           
@@ -12134,11 +20676,23 @@
           
           
           
+          
+          
+          
+          
           closeModal();
           
           
           
+          
+          
+          
+          
           setTimeout(() => openModal('new-camera'), 100);
+          
+          
+          
+          
           
           
           
@@ -12147,7 +20701,15 @@
           
           
           
+          
+          
+          
+          
           confirmLaunch('camera');
+          
+          
+          
+          
           
           
           
@@ -12156,7 +20718,15 @@
           
           
           
+          
+          
+          
+          
           confirmLaunch('lens');
+          
+          
+          
+          
           
           
           
@@ -12165,8 +20735,16 @@
           
           
           
+          
+          
+          
+          
           break;
         default:
+          
+          
+          
+          
           
           
           

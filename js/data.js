@@ -579,18 +579,88 @@
   };
 
   const AF_ARCHITECTURES = {
-    phase: { id: 'phase', name: '相位检测 AF 芯片', en: 'PDAF ASIC', tech: 2, baseCost: 9000000, months: 4, bonus: 6, costDelta: -60, desc: '成熟方案，成本低，适合主流机型。' },
-    fullpixel: { id: 'fullpixel', name: '全像素 AF 芯片', en: 'DUAL PIXEL ASIC', tech: 3, baseCost: 18000000, months: 6, bonus: 12, costDelta: -120, desc: '覆盖更大的对焦区域，追焦与暗光更好。' },
-    ai: { id: 'ai', name: 'AI 追焦芯片', en: 'AI TRACKING ASIC', tech: 4, baseCost: 34000000, months: 8, bonus: 20, costDelta: -200, desc: '独立 NPU 与主体识别，旗舰对焦的核心。' }
+    phase: { id: 'phase', name: '相位检测 AF 芯片', en: 'PDAF ASIC', tech: 2, baseCost: 9000000, months: 7, costDelta: -60, desc: '成熟方案，成本低，适合主流机型。' },
+    fullpixel: { id: 'fullpixel', name: '全像素 AF 芯片', en: 'DUAL PIXEL ASIC', tech: 3, baseCost: 18000000, months: 10, costDelta: -120, desc: '覆盖更大的对焦区域，追焦与暗光更好。' },
+    ai: { id: 'ai', name: 'AI 追焦芯片', en: 'AI TRACKING ASIC', tech: 4, baseCost: 34000000, months: 13, costDelta: -200, desc: '独立 NPU 与主体识别，旗舰对焦的核心。' }
   };
 
   const AF_TIERS = {
-    standard: { id: 'standard', name: '标准版', costMult: 0.78, bonus: -2, monthsMult: 0.9, desc: '基础规格，满足主流产品。' },
-    advanced: { id: 'advanced', name: '进阶版', costMult: 1, bonus: 0, monthsMult: 1, desc: '覆盖更多对焦点与追焦场景。' },
-    flagship: { id: 'flagship', name: '旗舰版', costMult: 1.45, bonus: 4, monthsMult: 1.2, desc: '为速度机与专业视频准备的最强规格。' }
+    standard: { id: 'standard', name: '标准版', costMult: 0.78, monthsMult: 0.9, desc: '基础规格，满足主流产品。' },
+    advanced: { id: 'advanced', name: '进阶版', costMult: 1, monthsMult: 1, desc: '覆盖更多对焦点与追焦场景。' },
+    flagship: { id: 'flagship', name: '旗舰版', costMult: 1.45, monthsMult: 1.2, desc: '为速度机与专业视频准备的最强规格。' }
   };
 
   const CHIP_BUDGETS = CMOS_BUDGETS;
+
+  /* ---------------------------------------------------------
+  AF chips: every AI brand ships a named sensor and a named AF
+  chip. Focus speed is now six measurable numbers, not one bonus.
+  --------------------------------------------------------- */
+  const AF_COVERAGE = {
+    center: { id: 'center', name: '中央区', mult: 0.17 },
+    wide: { id: 'wide', name: '宽区域', mult: 0.26 },
+    zone: { id: 'zone', name: '分区', mult: 0.34 },
+    near: { id: 'near', name: '近全域', mult: 0.46 },
+    full: { id: 'full', name: '全域', mult: 0.55 }
+  };
+
+  const AF_ARCH_TEMPLATE = {
+    phase: { ptPoints: 54, ptCoverage: 0.32, trackBase: 1.55, pvBoost: 0.06, lowLightBase: -1.8, ampCost: 58, ampW: 34 },
+    fullpixel: { ptPoints: 118, ptCoverage: 0.46, trackBase: 1.9, pvBoost: 0.12, lowLightBase: -3.1, ampCost: 92, ampW: 52 },
+    ai: { ptPoints: 186, ptCoverage: 0.55, trackBase: 2.2, pvBoost: 0.16, lowLightBase: -4.3, ampCost: 145, ampW: 76 }
+  };
+
+  const AF_CHIPS = {
+    canon: { name: 'Dual Pixel AF + DIGIC Accelerator', en: 'DUAL PIXEL AF', arch: 'fullpixel', coverage: 'full', pt: 62, ev: -6.5, evLight: -4.0, track: 2.35, contrast: 1.25, eye: 0.86, subjects: ['人眼', '面部', '动物', '车辆'], amp: 86, cost: 340, year: 2017, desc: '佳能招牌全像素双核。背屏实时取景和视频追焦一直是它最稳的一块。' },
+    sony: { name: 'AI Processing Unit + BIONZ XR', en: 'REAL-TIME RECOGNITION', arch: 'ai', coverage: 'full', pt: 105, ev: -7.5, evLight: -4.5, track: 2.75, contrast: 0.8, eye: 0.95, subjects: ['人眼', '动物', '鸟', '车辆', '飞机'], amp: 92, cost: 420, year: 2022, desc: '独立 AI 处理单元做主体识别，对焦锁定最快、暗光最狠。' },
+    nikon: { name: '多头相位检测 + 智能追踪', en: 'MULTI-CAM AF', arch: 'fullpixel', coverage: 'near', pt: 78, ev: -6.5, evLight: -4.5, track: 2.2, contrast: 0.95, eye: 0.9, subjects: ['人眼', '动物', '鸟', '车辆'], amp: 74, cost: 310, year: 2023, desc: '273 点宽区域，单次对焦极快，低光锁定和 Z9 时代的追踪都排在第一梯队。' },
+    fujifilm: { name: 'X-Processor 深度学习 AF', en: 'DEEP-LEARNING AF', arch: 'ai', coverage: 'zone', pt: 36, ev: -6.0, evLight: -3.5, track: 2.1, contrast: 1.15, eye: 0.82, subjects: ['人眼', '面部', '动物'], amp: 58, cost: 300, year: 2023, desc: '深度学习识别算法很强，但相位点只集中在分区，全域追焦要等下一代。' },
+    panasonic: { name: '相位混合 AF + AI 对象识别', en: 'HYBRID PHASE AF', arch: 'fullpixel', coverage: 'wide', pt: 30, ev: -4.0, evLight: -3.0, track: 1.95, contrast: 1.05, eye: 0.78, subjects: ['人眼', '人体'], amp: 52, cost: 230, year: 2023, desc: 'PDAF 补上了 GH6 的短板，视频追焦舒适，但低光锁定和机型识别还是偏保守；老机型仍是纯 DFD 反差。' },
+    dji: { name: '视觉追踪 + 云台融合对焦', en: 'GIMBAL FUSED TRACKING', arch: 'ai', coverage: 'zone', pt: 20, ev: -5.0, evLight: -6.5, track: 2.45, contrast: 0.85, eye: 0.8, subjects: ['人体', '人脸', '车辆', '运动物体'], amp: 36, cost: 190, year: 2023, desc: '相机和云台一起追焦：先电机锁人，芯片再追焦。静止场景一般，任何移动场景都很稳。' },
+    insta360: { name: 'FlowState 深度追踪', en: 'FLOWSTATE TRACKING', arch: 'fullpixel', coverage: 'wide', pt: 4, ev: -4.0, evLight: -3.0, track: 2.0, contrast: 1.5, eye: 0.7, subjects: ['人体', '人脸'], amp: 26, cost: 165, year: 2022, desc: '这里只需要两个镜头各自锁定，追踪靠算法在后期里跟着人走。对焦速度和专业机不是一个量级。' }
+  };
+
+  const AF_FOUNDATIONS = {
+    canon: 'dualpixel', sony: 'hybrid', nikon: 'hybrid',
+    fujifilm: 'hybrid', panasonic: 'contrast', dji: 'hybrid', insta360: 'contrast'
+  };
+
+  const AF_FOUNDATION_NAMES = { contrast: '反差式基础平台', hybrid: '混合（对比 + 相位）基础平台', dualpixel: '双核对焦基础平台' };
+
+  const CMOS_SENSORS = {
+    canon: { code: 'CMOS DGO 双增益', mp: 45, type: 'stacked', desc: '佳能自产的全画幅堆栈传感器，双增益读出。' },
+    sony: { code: 'IMX610 堆栈 BSI', mp: 50, type: 'stacked', desc: '索尼半导体主力全画幅堆栈方案，同一颗芯片也会卖给别家。' },
+    nikon: { code: 'IMX820 定制 BSI', mp: 45, type: 'bsi', desc: '与索尼半导体联合定制的背照式全画幅，尼康有独家读出设定。' },
+    fujifilm: { code: 'X-Trans 5 HR', mp: 40, type: 'bsi', desc: '富士自家的 X-Trans 结构，APS-C 上的色彩与摩尔纹方案。' },
+    panasonic: { code: 'ARRI 认证双增益 CMOS', mp: 24, type: 'bsi', desc: '与 ARRI 合作的双原生 ISO 全画幅，动态范围优先。' },
+    dji: { code: '1/1.3" 高动态 BSI', mp: 48, type: 'bsi', desc: '小尺寸、高读取速度，为云台与运动场景优化。' },
+    insta360: { code: '双 1/2" 全景拼接 BSI', mp: 20, type: 'bsi', desc: '两颗传感器同步曝光，靠算法拼成全景。' }
+  };
+
+  /* ---------------------------------------------------------
+  AF R&D: a chip programme now runs through five hard stages.
+  Each stage can fail (blocked). Incidents fire between stages.
+  --------------------------------------------------------- */
+  const AF_STAGES = [
+    { id: 'arch', name: '架构设计与规格冻结', en: 'SPEC FREEZE', weight: 0.16, difficulty: 0.9, desc: '对焦线数、读出时序和算力预算能不能塞进同一颗芯片。' },
+    { id: 'layout', name: '物理版图与 DRC', en: 'PHYSICAL LAYOUT', weight: 0.18, difficulty: 1.0, desc: '布线延迟与串扰，决定你能不能稳定跑到设计的线数。' },
+    { id: 'stream', name: '原型流片', en: 'SILICON PROOF', weight: 0.22, difficulty: 1.25, desc: '第一个原型回来，良率与读出速度是头一道关。' },
+    { id: 'trigger', name: '触发算法与相位校准', en: 'TRIGGER ALGORITHM', weight: 0.2, difficulty: 1.15, desc: '相位差算不准，对焦就来回抖；这一关没有捷径。' },
+    { id: 'qual', name: '量产验证与模组联调', en: 'QUALIFICATION', weight: 0.24, difficulty: 1.35, desc: '镜头、马达、机身主板三方联调，量产良率决定这颗芯片能不能用。' }
+  ];
+
+  const AF_INCIDENTS = [
+    { id: 'slow_lines', stage: 'stream', name: '读出时序跑不满对焦线数', text: '原型只能跑到设计线数的 60%，对焦线数要临时下调。', fixes: [{ cost: 0, months: 0, effects: { ptLines: -0.22, progress: -0.15 }, label: '接受降级规格' }, { cost: 6000000, months: 1, effects: { progress: -0.08 }, label: '追加预算重做时序' }, { cost: 14000000, months: 2, effects: {}, label: '推倒重来，保规格' }] },
+    { id: 'yield', stage: 'stream', name: '流片良率崩盘', text: '第一批晶圆良率不到 40%，量产成本会上浮，周期也会拖长。', fixes: [{ cost: 0, months: 0, effects: { costMultiplier: 0.18, progress: -0.12 }, label: '接受良率代价' }, { cost: 9000000, months: 1, effects: { progress: -0.06 }, label: '更换工艺角重流' }, { cost: 18000000, months: 2, effects: { costMultiplier: 0.05 }, label: '升级制程' }] },
+    { id: 'lowlight_noise', stage: 'trigger', name: '低光对焦噪声超标', text: '相位像素在 -5EV 下噪声过高，低光锁定会变慢。', fixes: [{ cost: 0, months: 0, effects: { evLight: 0.8, progress: -0.1 }, label: '降低低光规格' }, { cost: 7000000, months: 1, effects: { progress: -0.05 }, label: '追加算法预算' }, { cost: 16000000, months: 2, effects: {}, label: '重做读出电路' }] },
+    { id: 'track_drift', stage: 'trigger', name: '运动目标追踪抖动', text: '高速运动主体会出现来回寻焦，媒体测试一定会抓到。', fixes: [{ cost: 0, months: 0, effects: { track: 0.25, progress: -0.1 }, label: '接受追焦短板' }, { cost: 5000000, months: 1, effects: { progress: -0.05 }, label: '追加追踪算法团队' }] },
+    { id: 'lens_handshake', stage: 'qual', name: '镜头马达协同失步', text: '和第三方镜头联调时对焦抖动，需要重做马达驱动协议。', fixes: [{ cost: 0, months: 0, effects: { issueRate: 0.06, progress: -0.12 }, label: '限制定焦镜头使用' }, { cost: 8000000, months: 1, effects: { progress: -0.05 }, label: '重做驱动协议' }] },
+    { id: 'thermal', stage: 'qual', name: '长时间录制降频', text: '持续追焦时芯片发热触发降频，视频追焦会明显变慢。', fixes: [{ cost: 0, months: 0, effects: { contrast: 0.15, progress: -0.1 }, label: '接受长时间降频' }, { cost: 6000000, months: 1, effects: { progress: -0.05 }, label: '加装散热与降频策略' }] },
+    { id: 'power_draw', stage: 'arch', name: '功耗超预算', text: '对焦芯片单独吃掉了一块电池续航，机身要加厚散热。', fixes: [{ cost: 0, months: 0, effects: { costDelta: 90, progress: -0.08 }, label: '接受更高模组成本' }, { cost: 7000000, months: 1, effects: { progress: -0.04 }, label: '重新做功耗规划' }] },
+    { id: 'ip_conflict', stage: 'layout', name: 'IP 授权障碍', text: '对手持有的一段相位算法 IP 卡住了你的版图。', fixes: [{ cost: 0, months: 0, effects: { issueRate: 0.04, progress: -0.1, ipRisk: true }, label: '绕开，承担专利风险' }, { cost: 11000000, months: 1, effects: { progress: -0.05 }, label: '自研替代 IP' }, { cost: 22000000, months: 0, effects: {}, label: '支付授权费' }] },
+    { id: 'tooling', stage: 'layout', name: '先进制程改版与昂贵掩膜', text: '为了压功耗必须上更先进制程，掩膜费是预算的数倍。', fixes: [{ cost: 0, months: 0, effects: { costDelta: 120, progress: -0.12 }, label: '停在旧制程' }, { cost: 15000000, months: 2, effects: {}, label: '出钱改版' }] },
+    { id: 'abandon', stage: 'qual', name: '平台方案彻底失败', text: '这一代方案已经无法达到目标，要不要重开？', fixes: [{ cost: 0, months: 0, effects: {}, restart: true, label: '推倒重来' }, { cost: 0, months: 0, effects: { ptLines: -0.12, track: 0.2, progress: -0.2 }, label: '降级收尾' }] }
+  ];
 
   // =========================================================
   // Launch events: scale + format + city + press + KOL
@@ -1012,36 +1082,13 @@
       vlog: ['Lumix S9 II', 'Lumix G100 II'], compact: ['Lumix TZ100 II', 'Lumix LX100 III'], cinema: ['Lumix GH8', 'Lumix BS1H II'],
       mirrorless: ['Lumix G200'], retro: ['Lumix S Retro']
     },
-    sigma: {
-      fullframe: ['fp L2', 'BF2'], highres: ['fp X', 'fp L3'], compact: ['fp C'], cinema: ['fp Cine'],
-      mirrorless: ['fp Air']
-    },
-    tamron: {
-      highres: ['SP 35mm F1.2 Di III'], fullframe: ['35-150mm F2-2.8 II']
-    },
-    red: {
-      cinema: ['V-RAPTOR [X] 2', 'KOMODO-X2', 'V-RAPTOR XL 2'], sports: ['RAPTOR Sports'], highres: ['RAPTOR 12K']
-    },
-    blackmagic: {
-      cinema: ['URSA Cine 8K', 'PYXIS 12K', 'Pocket 8K Pro'], highres: ['URSA Cine 18K']
-    },
-    arri: {
-      cinema: ['ALEXA 35 II', 'ALEXA 65 II', 'ALEXA Mini LF II']
-    },
-    leica: {
-      fullframe: ['SL4', 'SL3-S II'], highres: ['SL3 R'], compact: ['Q4', 'D-Lux 9'],
-      retro: ['M12', 'M11-D II'], medium: ['S4'], mirrorless: ['CL2']
-    },
-    om: {
-      sports: ['OM-1 III', 'OM-1X'], fullframe: ['OM-3 II'], mirrorless: ['OM-5 II', 'E-M10 V'],
-      retro: ['OM-3'], compact: ['TG-8']
-    },
     dji: {
       vlog: ['Osmo Pocket 4', 'Osmo Pocket 4 Pro'], action: ['Osmo Action 6', 'Osmo Action 6 Pro'],
       cinema: ['Ronin 4D II', 'Ronin 4D-8K'], compact: ['Osmo Nano II'], mirrorless: ['DJI Mirrorless']
     },
-    gopro: {
-      action: ['HERO14 Black', 'HERO14 Creator', 'Max 3'], vlog: ['HERO14 Vlog']
+    insta360: {
+      action: ['X6', 'X6 Air', 'Ace Pro 3', 'GO 4'], vlog: ['GO 4S', 'Flow 2'], compact: ['Luna Pro X', 'Luna Ultra 2'],
+      cinema: ['Titan 2'], retro: ['GO Classic']
     }
   };
 
@@ -1062,13 +1109,22 @@
       staff: { engineers: 92, designers: 33, qc: 42, marketing: 35, sales: 46 },
       tech: { sensor: 5, video: 4, af: 5, ibis: 4, color: 5, codec: 4, cooling: 3, battery: 4, screen: 4, optics: 5, material: 4, modular: 3, software: 4 },
       sensorSupplier: 'canon_semi', odmPartner: 'self', ownFactoryLevel: 3,
+      afChipId: 'canon', cmosChipId: 'canon',
       design: { mainColor: '#1b1d1e', finish: 'matte', material: 'magnesium', accent: '#b73b2e', style: 'modern_pro' },
       catalog: [
-        { name: 'EOS R5 Mark II', category: 'highres', price: 26999, score: 92, sensor: 'ff', mp: 45, res: '8K', fps: 30, mount: 'RF', age: 14, target: 'professional' },
-        { name: 'EOS R6 Mark III', category: 'fullframe', price: 16999, score: 88, sensor: 'ff', mp: 32, res: '4K', fps: 120, mount: 'RF', age: 6, target: 'professional' },
-        { name: 'EOS R50 V', category: 'vlog', price: 6199, score: 79, sensor: 'apsc', mp: 24, res: '4K', fps: 60, mount: 'RF', age: 8, target: 'creator' },
-        { name: 'PowerShot V1', category: 'compact', price: 5999, score: 82, sensor: 'one', mp: 22, res: '4K', fps: 60, mount: 'FIXED', age: 10, target: 'creator' },
-        { name: 'EOS R100', category: 'mirrorless', price: 3699, score: 68, sensor: 'apsc', mp: 24, res: '4K', fps: 30, mount: 'RF', age: 28, target: 'consumer' }
+        { name: 'EOS R1', category: 'sports', price: 52800, score: 94, sensor: 'ff', mp: 24, res: '6K', fps: 120, mount: 'RF', age: 16, target: 'sports' },
+        { name: 'EOS R3', category: 'sports', price: 39800, score: 89, sensor: 'ff', mp: 24, res: '6K', fps: 30, mount: 'RF', age: 46, target: 'sports' },
+        { name: 'EOS R5 Mark II', category: 'highres', price: 26800, score: 92, sensor: 'ff', mp: 45, res: '8K', fps: 30, mount: 'RF', age: 14, target: 'professional' },
+        { name: 'EOS R5C', category: 'cinema', price: 28800, score: 88, sensor: 'ff', mp: 45, res: '8K', fps: 30, mount: 'RF', age: 40, target: 'cinema' },
+        { name: 'EOS R6 Mark III', category: 'fullframe', price: 16800, score: 89, sensor: 'ff', mp: 32, res: '4K', fps: 120, mount: 'RF', age: 8, target: 'professional' },
+        { name: 'EOS R6 Mark II', category: 'fullframe', price: 14800, score: 85, sensor: 'ff', mp: 24, res: '4K', fps: 60, mount: 'RF', age: 36, target: 'enthusiast' },
+        { name: 'EOS R6 V', category: 'vlog', price: 15800, score: 84, sensor: 'ff', mp: 24, res: '4K', fps: 60, mount: 'RF', age: 6, target: 'creator' },
+        { name: 'EOS R8 Mark II', category: 'fullframe', price: 11800, score: 83, sensor: 'ff', mp: 24, res: '4K', fps: 60, mount: 'RF', age: 10, target: 'creator' },
+        { name: 'EOS R8', category: 'fullframe', price: 9800, score: 79, sensor: 'ff', mp: 24, res: '4K', fps: 60, mount: 'RF', age: 36, target: 'enthusiast' },
+        { name: 'EOS RP', category: 'fullframe', price: 6800, score: 70, sensor: 'ff', mp: 26, res: '4K', fps: 30, mount: 'RF', age: 78, target: 'consumer' },
+        { name: 'EOS R10', category: 'mirrorless', price: 6980, score: 78, sensor: 'apsc', mp: 24, res: '4K', fps: 30, mount: 'RF', age: 40, target: 'enthusiast' },
+        { name: 'EOS R50', category: 'mirrorless', price: 4980, score: 74, sensor: 'apsc', mp: 24, res: '4K', fps: 30, mount: 'RF', age: 34, target: 'consumer' },
+        { name: 'EOS R50 V', category: 'vlog', price: 6180, score: 80, sensor: 'apsc', mp: 24, res: '4K', fps: 60, mount: 'RF', age: 12, target: 'creator' }
       ],
       lensCatalog: [
         { name: 'RF 24-70mm F2.8 L IS USM', mount: 'RF', type: 'zoom', focal: [24, 70], aperture: 2.8, price: 18999, score: 94, age: 28 },
@@ -1088,13 +1144,27 @@
       staff: { engineers: 96, designers: 34, qc: 38, marketing: 42, sales: 44 },
       tech: { sensor: 5, video: 5, af: 5, ibis: 4, color: 4, codec: 5, cooling: 4, battery: 4, screen: 5, optics: 4, material: 4, modular: 4, software: 5 },
       sensorSupplier: 'sony_semi', odmPartner: 'self', ownFactoryLevel: 3,
+      afChipId: 'sony', cmosChipId: 'sony',
       design: { mainColor: '#202325', finish: 'matte', material: 'magnesium', accent: '#8a9aa6', style: 'modern_pro' },
       catalog: [
-        { name: 'Alpha 1 II', category: 'sports', price: 47999, score: 94, sensor: 'ff', mp: 50, res: '8K', fps: 30, mount: 'E', age: 12, target: 'sports' },
-        { name: 'Alpha 7 V', category: 'fullframe', price: 17999, score: 89, sensor: 'ff', mp: 33, res: '4K', fps: 120, mount: 'E', age: 4, target: 'professional' },
-        { name: 'FX3', category: 'cinema', price: 27999, score: 91, sensor: 'ff', mp: 12, res: '4K', fps: 120, mount: 'E', age: 26, target: 'cinema' },
-        { name: 'ZV-E10 II', category: 'vlog', price: 7499, score: 82, sensor: 'apsc', mp: 26, res: '4K', fps: 60, mount: 'E', age: 10, target: 'creator' },
-        { name: 'RX100 VII', category: 'compact', price: 8999, score: 80, sensor: 'one', mp: 20, res: '4K', fps: 30, mount: 'FIXED', age: 60, target: 'enthusiast' }
+        { name: 'Alpha 1 II', category: 'sports', price: 48800, score: 94, sensor: 'ff', mp: 50, res: '8K', fps: 30, mount: 'E', age: 14, target: 'sports' },
+        { name: 'Alpha 9 III', category: 'sports', price: 42800, score: 92, sensor: 'ff', mp: 24, res: '4K', fps: 120, mount: 'E', age: 22, target: 'sports' },
+        { name: 'Alpha 7R VI', category: 'highres', price: 32800, score: 93, sensor: 'ff', mp: 61, res: '8K', fps: 30, mount: 'E', age: 10, target: 'professional' },
+        { name: 'Alpha 7R V', category: 'highres', price: 25800, score: 90, sensor: 'ff', mp: 61, res: '8K', fps: 30, mount: 'E', age: 34, target: 'professional' },
+        { name: 'Alpha 7 V', category: 'fullframe', price: 17800, score: 89, sensor: 'ff', mp: 33, res: '4K', fps: 120, mount: 'E', age: 6, target: 'professional' },
+        { name: 'Alpha 7 IV', category: 'fullframe', price: 14800, score: 85, sensor: 'ff', mp: 33, res: '4K', fps: 60, mount: 'E', age: 48, target: 'enthusiast' },
+        { name: 'Alpha 7 III', category: 'fullframe', price: 10800, score: 80, sensor: 'ff', mp: 24, res: '4K', fps: 30, mount: 'E', age: 90, target: 'enthusiast' },
+        { name: 'Alpha 7C II', category: 'fullframe', price: 15800, score: 85, sensor: 'ff', mp: 33, res: '4K', fps: 60, mount: 'E', age: 26, target: 'creator' },
+        { name: 'Alpha 7CR', category: 'highres', price: 23800, score: 88, sensor: 'ff', mp: 61, res: '4K', fps: 60, mount: 'E', age: 26, target: 'professional' },
+        { name: 'ZV-E1', category: 'vlog', price: 16800, score: 83, sensor: 'ff', mp: 12, res: '4K', fps: 120, mount: 'E', age: 30, target: 'creator' },
+        { name: 'Alpha 6700', category: 'mirrorless', price: 11800, score: 84, sensor: 'apsc', mp: 26, res: '4K', fps: 60, mount: 'E', age: 26, target: 'enthusiast' },
+        { name: 'ZV-E10 II', category: 'vlog', price: 7480, score: 82, sensor: 'apsc', mp: 26, res: '4K', fps: 60, mount: 'E', age: 10, target: 'creator' },
+        { name: 'ZV-E10', category: 'vlog', price: 4980, score: 74, sensor: 'apsc', mp: 24, res: '4K', fps: 30, mount: 'E', age: 60, target: 'creator' },
+        { name: 'FX3', category: 'cinema', price: 27800, score: 90, sensor: 'ff', mp: 12, res: '4K', fps: 120, mount: 'E', age: 50, target: 'cinema' },
+        { name: 'FX6', category: 'cinema', price: 58000, score: 92, sensor: 'ff', mp: 10, res: '4K', fps: 120, mount: 'E', age: 44, target: 'cinema' },
+        { name: 'FX5', category: 'cinema', price: 39800, score: 89, sensor: 'ff', mp: 17, res: '6K', fps: 60, mount: 'E', age: 12, target: 'cinema' },
+        { name: 'FX2', category: 'cinema', price: 22800, score: 85, sensor: 'ff', mp: 33, res: '4K', fps: 60, mount: 'E', age: 8, target: 'cinema' },
+        { name: 'FR7', category: 'cinema', price: 68800, score: 88, sensor: 'ff', mp: 12, res: '4K', fps: 60, mount: 'E', age: 30, target: 'cinema' }
       ],
       lensCatalog: [
         { name: 'FE 24-70mm F2.8 GM II', mount: 'E', type: 'zoom', focal: [24, 70], aperture: 2.8, price: 16999, score: 94, age: 34 },
@@ -1114,12 +1184,24 @@
       staff: { engineers: 68, designers: 25, qc: 31, marketing: 24, sales: 35 },
       tech: { sensor: 4, video: 4, af: 4, ibis: 4, color: 5, codec: 3, cooling: 3, battery: 5, screen: 4, optics: 5, material: 4, modular: 3, software: 4 },
       sensorSupplier: 'sony_semi', odmPartner: 'self', ownFactoryLevel: 3,
+      afChipId: 'nikon', cmosChipId: 'nikon',
       design: { mainColor: '#1d1e1d', finish: 'matte', material: 'magnesium', accent: '#d3b238', style: 'modern_pro' },
       catalog: [
-        { name: 'Z8', category: 'highres', price: 27999, score: 90, sensor: 'ff', mp: 45, res: '8K', fps: 30, mount: 'Z', age: 18, target: 'professional' },
-        { name: 'Z6III', category: 'fullframe', price: 17999, score: 88, sensor: 'ff', mp: 24, res: '6K', fps: 60, mount: 'Z', age: 10, target: 'professional' },
-        { name: 'Zf', category: 'retro', price: 13799, score: 85, sensor: 'ff', mp: 24, res: '4K', fps: 60, mount: 'Z', age: 14, target: 'enthusiast' },
-        { name: 'Z50 II', category: 'mirrorless', price: 8099, score: 78, sensor: 'apsc', mp: 21, res: '4K', fps: 60, mount: 'Z', age: 5, target: 'enthusiast' }
+        { name: 'D6', category: 'sports', price: 42800, score: 86, sensor: 'ff', mp: 21, res: '4K', fps: 30, mount: 'F', age: 60, target: 'sports' },
+        { name: 'D850', category: 'highres', price: 21800, score: 88, sensor: 'ff', mp: 46, res: '4K', fps: 30, mount: 'F', age: 84, target: 'professional' },
+        { name: 'D780', category: 'fullframe', price: 13800, score: 80, sensor: 'ff', mp: 24, res: '4K', fps: 30, mount: 'F', age: 66, target: 'professional' },
+        { name: 'D7500', category: 'mirrorless', price: 6980, score: 74, sensor: 'apsc', mp: 21, res: '4K', fps: 30, mount: 'F', age: 78, target: 'enthusiast' },
+        { name: 'D5600', category: 'mirrorless', price: 4280, score: 68, sensor: 'apsc', mp: 24, res: '1080p', fps: 60, mount: 'F', age: 96, target: 'consumer' },
+        { name: 'D3500', category: 'compact', price: 2980, score: 63, sensor: 'apsc', mp: 24, res: '1080p', fps: 60, mount: 'F', age: 84, target: 'consumer' },
+        { name: 'Z9', category: 'sports', price: 45800, score: 93, sensor: 'ff', mp: 46, res: '8K', fps: 120, mount: 'Z', age: 30, target: 'sports' },
+        { name: 'Z8', category: 'highres', price: 28800, score: 91, sensor: 'ff', mp: 46, res: '8K', fps: 60, mount: 'Z', age: 22, target: 'professional' },
+        { name: 'Z6III', category: 'fullframe', price: 18800, score: 88, sensor: 'ff', mp: 25, res: '6K', fps: 120, mount: 'Z', age: 10, target: 'professional' },
+        { name: 'Z5II', category: 'fullframe', price: 11800, score: 81, sensor: 'ff', mp: 24, res: '4K', fps: 60, mount: 'Z', age: 8, target: 'enthusiast' },
+        { name: 'Z5IIC', category: 'fullframe', price: 12400, score: 80, sensor: 'ff', mp: 24, res: '4K', fps: 60, mount: 'Z', age: 6, target: 'creator' },
+        { name: 'Zf', category: 'retro', price: 13900, score: 86, sensor: 'ff', mp: 25, res: '4K', fps: 60, mount: 'Z', age: 20, target: 'enthusiast' },
+        { name: 'Z30', category: 'vlog', price: 5480, score: 76, sensor: 'apsc', mp: 21, res: '4K', fps: 30, mount: 'Z', age: 26, target: 'creator' },
+        { name: 'Z50II', category: 'mirrorless', price: 8280, score: 79, sensor: 'apsc', mp: 21, res: '4K', fps: 60, mount: 'Z', age: 12, target: 'enthusiast' },
+        { name: 'ZR', category: 'cinema', price: 19800, score: 84, sensor: 'ff', mp: 33, res: '6K', fps: 60, mount: 'Z', age: 8, target: 'cinema' }
       ],
       lensCatalog: [
         { name: 'NIKKOR Z 24-70mm f/2.8 S', mount: 'Z', type: 'zoom', focal: [24, 70], aperture: 2.8, price: 15999, score: 95, age: 38 },
@@ -1139,13 +1221,23 @@
       staff: { engineers: 58, designers: 30, qc: 27, marketing: 26, sales: 30 },
       tech: { sensor: 4, video: 4, af: 3, ibis: 4, color: 5, codec: 3, cooling: 3, battery: 4, screen: 4, optics: 5, material: 4, modular: 4, software: 4 },
       sensorSupplier: 'sony_semi', odmPartner: 'self', ownFactoryLevel: 3,
+      afChipId: 'fujifilm', cmosChipId: 'fujifilm',
       design: { mainColor: '#c9c4b8', finish: 'leathergrain', material: 'aluminum', accent: '#b58f4f', style: 'retro' },
       catalog: [
-        { name: 'X-T5', category: 'mirrorless', price: 11990, score: 86, sensor: 'apsc', mp: 40, res: '6K', fps: 30, mount: 'X', age: 22, target: 'enthusiast' },
-        { name: 'X100VI', category: 'retro', price: 13800, score: 88, sensor: 'apsc', mp: 40, res: '6K', fps: 30, mount: 'FIXED', age: 12, target: 'enthusiast' },
-        { name: 'GFX100 II', category: 'medium', price: 53999, score: 92, sensor: 'mf', mp: 102, res: '8K', fps: 30, mount: 'GFX', age: 16, target: 'professional' },
-        { name: 'X-H2S', category: 'sports', price: 13990, score: 85, sensor: 'apsc', mp: 26, res: '6K', fps: 120, mount: 'X', age: 24, target: 'sports' },
-        { name: 'X-M5', category: 'vlog', price: 6490, score: 80, sensor: 'apsc', mp: 26, res: '6K', fps: 30, mount: 'X', age: 8, target: 'creator' }
+        { name: 'X-H2S', category: 'sports', price: 14800, score: 87, sensor: 'apsc', mp: 26, res: '6K', fps: 120, mount: 'X', age: 30, target: 'sports' },
+        { name: 'X-H2', category: 'highres', price: 12800, score: 88, sensor: 'apsc', mp: 40, res: '8K', fps: 30, mount: 'X', age: 30, target: 'professional' },
+        { name: 'X-T5', category: 'mirrorless', price: 11800, score: 87, sensor: 'apsc', mp: 40, res: '6K', fps: 30, mount: 'X', age: 30, target: 'enthusiast' },
+        { name: 'X-T50', category: 'mirrorless', price: 8480, score: 82, sensor: 'apsc', mp: 40, res: '6K', fps: 30, mount: 'X', age: 14, target: 'enthusiast' },
+        { name: 'X-T30 III', category: 'mirrorless', price: 6480, score: 80, sensor: 'apsc', mp: 26, res: '6K', fps: 30, mount: 'X', age: 8, target: 'enthusiast' },
+        { name: 'X-E5', category: 'mirrorless', price: 8280, score: 82, sensor: 'apsc', mp: 40, res: '6K', fps: 30, mount: 'X', age: 6, target: 'enthusiast' },
+        { name: 'X-M5', category: 'vlog', price: 5980, score: 79, sensor: 'apsc', mp: 26, res: '6K', fps: 30, mount: 'X', age: 14, target: 'creator' },
+        { name: 'X-S20', category: 'mirrorless', price: 8280, score: 81, sensor: 'apsc', mp: 26, res: '6K', fps: 30, mount: 'X', age: 22, target: 'creator' },
+        { name: 'X100VI', category: 'retro', price: 13980, score: 89, sensor: 'apsc', mp: 40, res: '6K', fps: 30, mount: 'FIXED', age: 16, target: 'enthusiast' },
+        { name: 'X half', category: 'compact', price: 5280, score: 76, sensor: 'one', mp: 18, res: '4K', fps: 30, mount: 'FIXED', age: 6, target: 'creator' },
+        { name: 'GFX100 II', category: 'medium', price: 56800, score: 92, sensor: 'mf', mp: 102, res: '8K', fps: 30, mount: 'GFX', age: 18, target: 'professional' },
+        { name: 'GFX100S II', category: 'medium', price: 39800, score: 91, sensor: 'mf', mp: 102, res: '4K', fps: 30, mount: 'GFX', age: 12, target: 'professional' },
+        { name: 'GFX100RF', category: 'medium', price: 42800, score: 89, sensor: 'mf', mp: 102, res: '4K', fps: 30, mount: 'FIXED', age: 8, target: 'enthusiast' },
+        { name: 'GFX ETERNA 55', category: 'cinema', price: 88800, score: 90, sensor: 'mf', mp: 55, res: '8K', fps: 30, mount: 'GFX', age: 6, target: 'cinema' }
       ],
       lensCatalog: [
         { name: 'XF 16-55mm F2.8 R LM WR II', mount: 'X', type: 'zoom', focal: [16, 55], aperture: 2.8, price: 8999, score: 93, age: 14 },
@@ -1165,168 +1257,23 @@
       staff: { engineers: 55, designers: 20, qc: 24, marketing: 22, sales: 28 },
       tech: { sensor: 4, video: 5, af: 4, ibis: 4, color: 4, codec: 4, cooling: 4, battery: 3, screen: 4, optics: 3, material: 3, modular: 3, software: 4 },
       sensorSupplier: 'sony_semi', odmPartner: 'self', ownFactoryLevel: 2,
+      afChipId: 'panasonic', cmosChipId: 'panasonic',
       design: { mainColor: '#1f2327', finish: 'matte', material: 'magnesium', accent: '#577ca5', style: 'modern_pro' },
       catalog: [
-        { name: 'Lumix S5 II', category: 'fullframe', price: 13999, score: 85, sensor: 'ff', mp: 24, res: '6K', fps: 30, mount: 'L', age: 26, target: 'enthusiast' },
-        { name: 'Lumix GH7', category: 'cinema', price: 15999, score: 88, sensor: 'm43', mp: 25, res: '6K', fps: 60, mount: 'M43', age: 10, target: 'cinema' },
-        { name: 'Lumix S9', category: 'vlog', price: 9999, score: 80, sensor: 'ff', mp: 24, res: '6K', fps: 30, mount: 'L', age: 12, target: 'creator' },
-        { name: 'Lumix TZ99', category: 'compact', price: 4999, score: 64, sensor: 'one', mp: 20, res: '4K', fps: 30, mount: 'FIXED', age: 10, target: 'consumer' }
+        { name: 'S1R II', category: 'highres', price: 32800, score: 90, sensor: 'ff', mp: 44, res: '8K', fps: 30, mount: 'L', age: 10, target: 'professional' },
+        { name: 'S1 II', category: 'fullframe', price: 23800, score: 87, sensor: 'ff', mp: 24, res: '6K', fps: 60, mount: 'L', age: 12, target: 'professional' },
+        { name: 'S1 IIE', category: 'fullframe', price: 19800, score: 84, sensor: 'ff', mp: 24, res: '6K', fps: 30, mount: 'L', age: 12, target: 'enthusiast' },
+        { name: 'S5 II', category: 'fullframe', price: 13800, score: 85, sensor: 'ff', mp: 24, res: '6K', fps: 30, mount: 'L', age: 32, target: 'enthusiast' },
+        { name: 'S5 IIX', category: 'cinema', price: 15800, score: 87, sensor: 'ff', mp: 24, res: '6K', fps: 30, mount: 'L', age: 32, target: 'cinema' },
+        { name: 'S9', category: 'vlog', price: 9800, score: 80, sensor: 'ff', mp: 24, res: '6K', fps: 30, mount: 'L', age: 16, target: 'creator' },
+        { name: 'GH7', category: 'cinema', price: 15800, score: 89, sensor: 'm43', mp: 25, res: '6K', fps: 60, mount: 'M43', age: 14, target: 'cinema' },
+        { name: 'GH5 II', category: 'cinema', price: 11800, score: 82, sensor: 'm43', mp: 20, res: '4K', fps: 60, mount: 'M43', age: 52, target: 'cinema' },
+        { name: 'G7', category: 'mirrorless', price: 4280, score: 66, sensor: 'm43', mp: 16, res: '4K', fps: 30, mount: 'M43', age: 120, target: 'consumer' },
+        { name: 'ZS300', category: 'compact', price: 5980, score: 72, sensor: 'one', mp: 20, res: '4K', fps: 30, mount: 'FIXED', age: 16, target: 'consumer' },
+        { name: 'L10', category: 'compact', price: 3980, score: 64, sensor: 'm43', mp: 17, res: '4K', fps: 30, mount: 'FIXED', age: 90, target: 'consumer' }
       ],
       lensCatalog: [
         { name: 'Lumix S 24-70mm F2.8', mount: 'L', type: 'zoom', focal: [24, 70], aperture: 2.8, price: 13999, score: 91, age: 30 }
-      ]
-    },
-    {
-      id: 'sigma', name: '适马', en: 'SIGMA', hq: '川崎 · 日本', founded: 1961,
-      color: '#5f7d75', logo: 'Σ', mark: 'SIGMA',
-      positioning: '光学极客 · 异形设计',
-      tagline: '当一间镜头厂认真做起相机，形状就不再重要。',
-      brief: 'Art 镜头群有狂热口碑，fp 系列则以极端模块化闻名。用设计把光学实力翻译成消费产品。',
-      playstyle: '小众创新者',
-      strengths: ['Art 系列光学口碑', '极强镜头研发', 'fp 模块化理念', 'L 卡口联盟'],
-      cash: 340000000, debt: 35000000, reputation: 82, awareness: 72, startingShare: 2.2,
-      fixedOverhead: 9000000, marketingBudget: 5000000,
-      staff: { engineers: 26, designers: 12, qc: 10, marketing: 9, sales: 12 },
-      tech: { sensor: 4, video: 4, af: 3, ibis: 3, color: 4, codec: 4, cooling: 3, battery: 3, screen: 3, optics: 5, material: 4, modular: 5, software: 3 },
-      sensorSupplier: 'sony_semi', odmPartner: 'self', ownFactoryLevel: 2,
-      design: { mainColor: '#2c2f2c', finish: 'anodized', material: 'aluminum', accent: '#5f7d75', style: 'industrial' },
-      catalog: [
-        { name: 'fp L', category: 'highres', price: 14999, score: 78, sensor: 'ff', mp: 61, res: '4K', fps: 30, mount: 'L', age: 36, target: 'professional' },
-        { name: 'Sigma BF', category: 'fullframe', price: 13999, score: 77, sensor: 'ff', mp: 24, res: '6K', fps: 30, mount: 'L', age: 8, target: 'enthusiast' }
-      ],
-      lensCatalog: [
-        { name: '24-70mm F2.8 DG DN II Art', mount: 'L', type: 'zoom', focal: [24, 70], aperture: 2.8, price: 7999, score: 94, age: 8 },
-        { name: '35mm F1.4 DG DN Art', mount: 'L', type: 'prime', focal: [35, 35], aperture: 1.4, price: 5999, score: 93, age: 30 }
-      ]
-    },
-    {
-      id: 'tamron', name: '腾龙', en: 'TAMRON', hq: '埼玉 · 日本', founded: 1950,
-      color: '#b45a45', logo: 'T', mark: 'TAMRON',
-      positioning: '镜头专家 · 无相机业务',
-      tagline: '没有人规定，制造相机公司的人必须先制造相机。',
-      brief: '你拥有极强的光学技术与性价比口碑，却没有一台自己的机身。第一款相机将决定品牌能否跨过这道门。',
-      playstyle: '挑战型',
-      strengths: ['极高光学性价比', '第三方镜头生态', '轻量化设计', '变焦技术积累'],
-      cash: 180000000, debt: 20000000, reputation: 84, awareness: 76, startingShare: 0,
-      fixedOverhead: 6500000, marketingBudget: 3500000,
-      staff: { engineers: 20, designers: 8, qc: 9, marketing: 8, sales: 10 },
-      tech: { sensor: 2, video: 2, af: 2, ibis: 3, color: 3, codec: 2, cooling: 2, battery: 2, screen: 2, optics: 5, material: 3, modular: 3, software: 2 },
-      sensorSupplier: 'sony_semi', odmPartner: 'luxshare', ownFactoryLevel: 0,
-      design: { mainColor: '#202322', finish: 'matte', material: 'aluminum', accent: '#b45a45', style: 'modern_pro' },
-      catalog: [],
-      lensCatalog: [
-        { name: '28-75mm F/2.8 Di III VXD G2', mount: 'E', type: 'zoom', focal: [28, 75], aperture: 2.8, price: 6999, score: 91, age: 34 },
-        { name: '70-180mm F/2.8 Di III VC VXD G2', mount: 'E', type: 'zoom', focal: [70, 180], aperture: 2.8, price: 8499, score: 90, age: 24 },
-        { name: '150-500mm F/5-6.7 Di III VC VXD', mount: 'E', type: 'tele', focal: [150, 500], aperture: 6.7, price: 8999, score: 86, age: 40 }
-      ]
-    },
-    {
-      id: 'red', name: 'RED 数字电影', en: 'RED DIGITAL CINEMA', hq: '尔湾 · 美国', founded: 2005,
-      color: '#b73a2c', logo: 'R', mark: 'RED',
-      positioning: '电影技术先锋 · 极致规格',
-      tagline: '从独立电影到好莱坞，RED 从不掩饰自己的野心。',
-      brief: '片场技术先锋，RAW 工作流与高帧率是信仰。把专业电影机做成人人都想摸一摸的工业图腾。',
-      playstyle: '规格激进型',
-      strengths: ['机内 RAW 与高帧率', '电影制作生态', '强烈的工业设计', '品牌狂热'],
-      cash: 280000000, debt: 45000000, reputation: 88, awareness: 70, startingShare: 1.6,
-      fixedOverhead: 8500000, marketingBudget: 4000000,
-      staff: { engineers: 22, designers: 10, qc: 8, marketing: 7, sales: 9 },
-      tech: { sensor: 4, video: 5, af: 3, ibis: 3, color: 5, codec: 5, cooling: 4, battery: 3, screen: 4, optics: 4, material: 4, modular: 5, software: 4 },
-      sensorSupplier: 'onsemi', odmPartner: 'jabil', ownFactoryLevel: 1,
-      design: { mainColor: '#151717', finish: 'matte', material: 'aluminum', accent: '#b73a2c', style: 'cinema' },
-      catalog: [
-        { name: 'V-RAPTOR [X]', category: 'cinema', price: 299999, score: 93, sensor: 'ff', mp: 35, res: '8K', fps: 120, mount: 'PL', age: 16, target: 'cinema' },
-        { name: 'Komodo-X', category: 'cinema', price: 79999, score: 89, sensor: 'ff', mp: 20, res: '6K', fps: 80, mount: 'PL', age: 26, target: 'cinema' },
-        { name: 'KOMODO 6K', category: 'cinema', price: 49999, score: 82, sensor: 'ff', mp: 19, res: '6K', fps: 40, mount: 'PL', age: 48, target: 'cinema' }
-      ],
-      lensCatalog: []
-    },
-    {
-      id: 'blackmagic', name: 'Blackmagic Design', en: 'BLACKMAGIC DESIGN', hq: '墨尔本 · 澳大利亚', founded: 2001,
-      color: '#b77735', logo: 'B', mark: 'BMD',
-      positioning: '片场民主化 · 低价高规格',
-      tagline: '让独立电影人，用一台相机的预算拍一部电影。',
-      brief: '你用极致性价比和 DaVinci 生态搅动行业。如何把“低价高规”变成更有设计感的专业品牌？',
-      playstyle: '价格破坏者',
-      strengths: ['极高性价比电影机', 'DaVinci 后期生态', 'RAW 编码', '片场工作流'],
-      cash: 140000000, debt: 18000000, reputation: 83, awareness: 67, startingShare: 1.8,
-      fixedOverhead: 7000000, marketingBudget: 3000000,
-      staff: { engineers: 24, designers: 11, qc: 9, marketing: 8, sales: 10 },
-      tech: { sensor: 4, video: 5, af: 3, ibis: 3, color: 4, codec: 5, cooling: 3, battery: 3, screen: 4, optics: 3, material: 3, modular: 5, software: 4 },
-      sensorSupplier: 'sony_semi', odmPartner: 'flex', ownFactoryLevel: 0,
-      design: { mainColor: '#202121', finish: 'powder', material: 'aluminum', accent: '#b77735', style: 'cinema' },
-      catalog: [
-        { name: 'URSA Cine 12K', category: 'cinema', price: 155000, score: 90, sensor: 'ff', mp: 80, res: '12K', fps: 30, mount: 'PL', age: 12, target: 'cinema' },
-        { name: 'PYXIS 6K', category: 'cinema', price: 22999, score: 87, sensor: 'ff', mp: 24, res: '6K', fps: 60, mount: 'PL', age: 10, target: 'cinema' },
-        { name: 'Pocket Cinema Camera 6K Pro', category: 'cinema', price: 13999, score: 82, sensor: 'apsc', mp: 21, res: '6K', fps: 50, mount: 'EF', age: 42, target: 'cinema' }
-      ],
-      lensCatalog: []
-    },
-    {
-      id: 'arri', name: 'ARRI', en: 'ARRI', hq: '慕尼黑 · 德国', founded: 1917,
-      color: '#9fa49a', logo: 'A', mark: 'ARRI',
-      positioning: '电影工业圣杯 · 极致可靠',
-      tagline: '当所有人追逐参数，ARRI 只关心银幕上的那束光。',
-      brief: '你是电影工业的信仰，设备昂贵、可靠、几乎无可替代。现在的任务是让品牌进入下一代制作流程。',
-      playstyle: '超高溢价型',
-      strengths: ['电影工业标准', '顶级色彩与宽容度', '极端可靠性', '租赁与片场网络'],
-      cash: 310000000, debt: 24000000, reputation: 96, awareness: 64, startingShare: 1.2,
-      fixedOverhead: 10500000, marketingBudget: 3800000,
-      staff: { engineers: 34, designers: 16, qc: 13, marketing: 10, sales: 14 },
-      tech: { sensor: 5, video: 5, af: 3, ibis: 3, color: 5, codec: 5, cooling: 5, battery: 4, screen: 4, optics: 5, material: 5, modular: 5, software: 4 },
-      sensorSupplier: 'inhouse', odmPartner: 'self', ownFactoryLevel: 1,
-      design: { mainColor: '#2b2c28', finish: 'matte', material: 'magnesium', accent: '#9fa49a', style: 'cinema' },
-      catalog: [
-        { name: 'ALEXA 35', category: 'cinema', price: 500000, score: 98, sensor: 'apsc', mp: 9, res: '4K', fps: 120, mount: 'PL', age: 28, target: 'cinema' },
-        { name: 'ALEXA Mini LF', category: 'cinema', price: 450000, score: 95, sensor: 'ff', mp: 45, res: '4K', fps: 60, mount: 'PL', age: 60, target: 'cinema' }
-      ],
-      lensCatalog: [
-        { name: 'Signature Prime 35mm T1.8', mount: 'PL', type: 'cinema', focal: [35, 35], aperture: 1.8, price: 120000, score: 97, age: 62 }
-      ]
-    },
-    {
-      id: 'leica', name: '徕卡', en: 'LEICA', hq: '韦茨拉尔 · 德国', founded: 1869,
-      color: '#9f2e2a', logo: 'L', mark: 'LEICA',
-      positioning: '奢侈影像 · 德国工艺',
-      tagline: '不是所有相机都需要参数表，有些本身就是收藏品。',
-      brief: '你是相机界的奢侈品，用户为红点、黄铜和品牌故事支付溢价。现在要把工艺优势转成增长。',
-      playstyle: '奢侈品牌型',
-      strengths: ['最强品牌溢价', '顶级工业设计', 'M 卡口遗产', '奢侈渠道'],
-      cash: 520000000, debt: 30000000, reputation: 94, awareness: 76, startingShare: 1.9,
-      fixedOverhead: 12000000, marketingBudget: 6000000,
-      staff: { engineers: 28, designers: 18, qc: 12, marketing: 11, sales: 14 },
-      tech: { sensor: 4, video: 4, af: 4, ibis: 4, color: 5, codec: 3, cooling: 3, battery: 3, screen: 4, optics: 5, material: 5, modular: 3, software: 3 },
-      sensorSupplier: 'sony_semi', odmPartner: 'self', ownFactoryLevel: 2,
-      design: { mainColor: '#d0cbc0', finish: 'anodized', material: 'aluminum', accent: '#9f2e2a', style: 'retro' },
-      catalog: [
-        { name: 'M11', category: 'retro', price: 68000, score: 88, sensor: 'ff', mp: 60, res: '4K', fps: 30, mount: 'M', age: 36, target: 'enthusiast' },
-        { name: 'SL3', category: 'fullframe', price: 51800, score: 90, sensor: 'ff', mp: 60, res: '8K', fps: 30, mount: 'L', age: 14, target: 'professional' },
-        { name: 'Q3', category: 'compact', price: 46800, score: 89, sensor: 'ff', mp: 60, res: '8K', fps: 30, mount: 'FIXED', age: 20, target: 'enthusiast' }
-      ],
-      lensCatalog: [
-        { name: 'Summilux-M 35mm f/1.4 ASPH', mount: 'M', type: 'prime', focal: [35, 35], aperture: 1.4, price: 58000, score: 96, age: 26 }
-      ]
-    },
-    {
-      id: 'om', name: 'OM SYSTEM', en: 'OM SYSTEM', hq: '东京 · 日本', founded: 2021,
-      color: '#5e716e', logo: 'O', mark: 'OM',
-      positioning: '轻量户外 · 极致防抖',
-      tagline: '背着最轻的器材，去最远的地方。',
-      brief: 'M43 的轻量和强悍防抖仍然是独特资产。用鲜明的户外设计和计算摄影找回存在感。',
-      playstyle: '细分防守型',
-      strengths: ['最强机身防抖', '轻量长焦系统', '户外防护', '计算摄影功能'],
-      cash: 100000000, debt: 12000000, reputation: 82, awareness: 64, startingShare: 1.1,
-      fixedOverhead: 6000000, marketingBudget: 2500000,
-      staff: { engineers: 24, designers: 10, qc: 11, marketing: 9, sales: 12 },
-      tech: { sensor: 4, video: 4, af: 4, ibis: 5, color: 4, codec: 3, cooling: 4, battery: 4, screen: 3, optics: 4, material: 4, modular: 4, software: 3 },
-      sensorSupplier: 'sony_semi', odmPartner: 'luxshare', ownFactoryLevel: 0,
-      design: { mainColor: '#1e2220', finish: 'matte', material: 'magnesium', accent: '#5e716e', style: 'modern_pro' },
-      catalog: [
-        { name: 'OM-1 II', category: 'sports', price: 15999, score: 84, sensor: 'm43', mp: 20, res: '4K', fps: 60, mount: 'M43', age: 14, target: 'sports' },
-        { name: 'OM-5', category: 'mirrorless', price: 8999, score: 78, sensor: 'm43', mp: 20, res: '4K', fps: 30, mount: 'M43', age: 26, target: 'enthusiast' }
-      ],
-      lensCatalog: [
-        { name: 'M.Zuiko Digital ED 12-40mm F2.8 PRO II', mount: 'M43', type: 'zoom', focal: [12, 40], aperture: 2.8, price: 6499, score: 92, age: 18 }
       ]
     },
     {
@@ -1342,40 +1289,104 @@
       staff: { engineers: 70, designers: 36, qc: 31, marketing: 34, sales: 40 },
       tech: { sensor: 3, video: 4, af: 5, ibis: 5, color: 4, codec: 4, cooling: 4, battery: 4, screen: 5, optics: 4, material: 3, modular: 3, software: 5 },
       sensorSupplier: 'sony_semi', odmPartner: 'self', ownFactoryLevel: 3,
+      afChipId: 'dji', cmosChipId: 'dji',
       design: { mainColor: '#202425', finish: 'matte', material: 'aluminum', accent: '#5b6e74', style: 'industrial' },
       catalog: [
-        { name: 'Osmo Pocket 3', category: 'vlog', price: 3499, score: 86, sensor: 'one', mp: 10, res: '4K', fps: 120, mount: 'FIXED', age: 14, target: 'creator' },
-        { name: 'Osmo Action 5 Pro', category: 'action', price: 2299, score: 83, sensor: 'one', mp: 40, res: '4K', fps: 120, mount: 'FIXED', age: 10, target: 'sports' }
+        { name: 'Osmo Pocket 4', category: 'vlog', price: 3799, score: 87, sensor: 'one', mp: 20, res: '4K', fps: 120, mount: 'FIXED', age: 8, target: 'creator' },
+        { name: 'Osmo Pocket 4P', category: 'vlog', price: 4799, score: 89, sensor: 'one', mp: 20, res: '4K', fps: 120, mount: 'FIXED', age: 8, target: 'creator' },
+        { name: 'Osmo 360 II', category: 'action', price: 3299, score: 84, sensor: 'one', mp: 48, res: '8K', fps: 30, mount: 'FIXED', age: 6, target: 'sports' },
+        { name: 'Osmo Action 6', category: 'action', price: 2599, score: 85, sensor: 'one', mp: 40, res: '4K', fps: 120, mount: 'FIXED', age: 6, target: 'sports' },
+        { name: 'Osmo Action 5 Pro', category: 'action', price: 2299, score: 82, sensor: 'one', mp: 40, res: '4K', fps: 120, mount: 'FIXED', age: 18, target: 'sports' }
       ],
       lensCatalog: []
     },
     {
-      id: 'gopro', name: 'GoPro', en: 'GOPRO', hq: '圣马特奥 · 美国', founded: 2002,
-      color: '#33464d', logo: 'G', mark: 'GOPRO',
-      positioning: '运动影像符号 · 需要重生',
-      tagline: '曾经定义了运动相机，现在需要重新定义自己。',
-      brief: '品牌仍有巨大的户外认知，但产品创新和口碑正在被追赶。用一场设计革命重新夺回街头与山野。',
-      playstyle: '品牌复兴型',
-      strengths: ['最强的运动相机品牌记忆', '庞大用户社区', '配件生态', '极限运动内容'],
-      cash: 160000000, debt: 58000000, reputation: 68, awareness: 85, startingShare: 2.0,
-      fixedOverhead: 9000000, marketingBudget: 5000000,
-      staff: { engineers: 26, designers: 12, qc: 12, marketing: 13, sales: 16 },
-      tech: { sensor: 3, video: 4, af: 4, ibis: 5, color: 3, codec: 3, cooling: 3, battery: 3, screen: 3, optics: 3, material: 2, modular: 3, software: 4 },
-      sensorSupplier: 'onsemi', odmPartner: 'goertek', ownFactoryLevel: 0,
-      design: { mainColor: '#222b2e', finish: 'rubberized', material: 'plastic', accent: '#4f7c86', style: 'action' },
+      id: 'insta360', name: '影石', en: 'INSTA360', hq: '深圳 · 中国', founded: 2015,
+      color: '#e07a2f', logo: 'I', mark: 'INSTA360',
+      positioning: '全景影像 · 先拍摄后取景',
+      tagline: '先拍下来，再决定看哪里。',
+      brief: '你用全景重构了"拍摄"这件事本身：用户不需要构图，只需要记录。现在要把这套算法优势扩展到运动相机与创作者工具上，从一家配件公司变成真正的影像公司。',
+      playstyle: '内容驱动型',
+      strengths: ['全景拼接与后期重构算法', 'FlowState 防抖', '磁吸模块化生态', '年轻用户与社交内容'],
+      cash: 900000000, debt: 60000000, reputation: 84, awareness: 79, startingShare: 3.4,
+      fixedOverhead: 14000000, marketingBudget: 9000000,
+      staff: { engineers: 46, designers: 18, qc: 15, marketing: 19, sales: 17 },
+      tech: { sensor: 3, video: 4, af: 3, ibis: 5, color: 3, codec: 4, cooling: 3, battery: 3, screen: 3, optics: 2, material: 3, modular: 5, software: 5 },
+      sensorSupplier: 'sony_semi', odmPartner: 'goertek', ownFactoryLevel: 0,
+      afChipId: 'insta360', cmosChipId: 'insta360',
+      design: { mainColor: '#1d1f21', finish: 'matte', material: 'aluminum', accent: '#e07a2f', style: 'action' },
       catalog: [
-        { name: 'HERO13 Black', category: 'action', price: 2598, score: 80, sensor: 'one', mp: 27, res: '5K', fps: 60, mount: 'FIXED', age: 12, target: 'sports' },
-        { name: 'Max 2', category: 'action', price: 3298, score: 78, sensor: 'one', mp: 35, res: '8K', fps: 30, mount: 'FIXED', age: 8, target: 'creator' }
+        { name: 'X6', category: 'action', price: 3580, score: 87, sensor: 'one', mp: 72, res: '8K', fps: 30, mount: 'FIXED', age: 8, target: 'sports' },
+        { name: 'X5', category: 'action', price: 3280, score: 84, sensor: 'one', mp: 72, res: '8K', fps: 30, mount: 'FIXED', age: 22, target: 'sports' },
+        { name: 'X4', category: 'action', price: 2680, score: 80, sensor: 'one', mp: 36, res: '8K', fps: 30, mount: 'FIXED', age: 36, target: 'sports' },
+        { name: 'X4 Air', category: 'action', price: 2180, score: 77, sensor: 'one', mp: 36, res: '8K', fps: 30, mount: 'FIXED', age: 20, target: 'creator' },
+        { name: 'Ace Pro 2', category: 'action', price: 2799, score: 85, sensor: 'one', mp: 50, res: '8K', fps: 30, mount: 'FIXED', age: 12, target: 'creator' },
+        { name: 'GO Ultra', category: 'vlog', price: 2680, score: 82, sensor: 'one', mp: 20, res: '4K', fps: 60, mount: 'FIXED', age: 8, target: 'creator' },
+        { name: 'GO 3S', category: 'vlog', price: 2198, score: 78, sensor: 'one', mp: 12, res: '4K', fps: 30, mount: 'FIXED', age: 18, target: 'creator' },
+        { name: 'Pro 2', category: 'cinema', price: 26800, score: 86, sensor: 'one', mp: 72, res: '8K', fps: 30, mount: 'FIXED', age: 10, target: 'cinema' }
       ],
       lensCatalog: []
     }
   ];
 
+  /* ---------------------------------------------------------
+  World regions — the strategic map divides global demand into
+  six markets. Every brand has a home advantage multiplier.
+  --------------------------------------------------------- */
+  const REGIONS = [
+    {
+      id: 'greater_china', name: '大中华区', en: 'GREATER CHINA', short: '大中华',
+      weight: 0.26, x: 0.74, y: 0.44, w: 150, h: 110,
+      desc: '全球最大的影像消费增量市场，也是大疆与影石的主场。',
+      bias: { dji: 1.55, insta360: 1.55, sony: 1.1, canon: 1.0, nikon: 0.92, fujifilm: 1.08, panasonic: 0.95 },
+      geo: [[73,40],[76,41],[80,45],[85,47],[90,48],[95,49],[100,49],[105,49],[110,48],[115,48],[120,50],[124,49],[127,46],[130,44],[131,42],[127,40],[124,39],[122,37],[121,34],[122,31],[120,27],[117,24],[113,22],[110,21],[108,21],[105,22],[101,22],[98,24],[96,28],[92,28],[88,30],[84,33],[80,36],[76,37],[73,40]]
+    },
+    {
+      id: 'asia_pac', name: '亚太（除大中华）', en: 'ASIA PACIFIC', short: '亚太',
+      weight: 0.18, x: 0.78, y: 0.6, w: 130, h: 100,
+      desc: '日本厂商的传统腹地，摄影文化与器材渠道最成熟。',
+      bias: { canon: 1.22, sony: 1.25, nikon: 1.18, fujifilm: 1.12, panasonic: 1.1, dji: 1.0, insta360: 0.95 },
+      geo: [[[60,40],[66,38],[70,40],[75,37],[78,34],[80,30],[82,26],[85,24],[88,26],[92,27],[95,26],[97,22],[99,18],[100,13],[103,8],[105,5],[107,10],[109,14],[108,20],[110,21],[113,22],[115,23],[117,24],[120,25],[122,30],[122,34],[125,36],[127,35],[128,38],[130,43],[133,44],[136,45],[140,46],[142,48],[145,50],[148,54],[152,58],[157,60],[162,61],[167,64],[172,67],[178,69],[180,66],[180,54],[175,50],[170,47],[165,44],[160,42],[155,40],[150,38],[146,36],[142,34],[140,32],[137,30],[133,29],[130,28],[127,25],[124,23],[122,20],[120,17],[118,12],[119,8],[121,4],[124,2],[120,-2],[115,-4],[110,-6],[105,-6],[102,-3],[100,2],[98,8],[96,12],[94,16],[90,20],[86,22],[80,15],[76,10],[72,14],[68,20],[64,26],[62,32],[60,40]],[[113,-22],[114,-27],[115,-31],[118,-34],[122,-34],[126,-32],[130,-31],[134,-33],[137,-35],[140,-38],[144,-38],[147,-38],[150,-36],[153,-32],[153,-28],[152,-25],[149,-21],[146,-18],[143,-14],[141,-12],[138,-12],[136,-13],[133,-15],[130,-14],[127,-15],[124,-17],[121,-19],[117,-21],[113,-22]]]
+    },
+    {
+      id: 'north_america', name: '北美', en: 'NORTH AMERICA', short: '北美',
+      weight: 0.22, x: 0.17, y: 0.3, w: 160, h: 120,
+      desc: '专业用户与内容创作者密度最高，单价高、口碑影响大。',
+      bias: { canon: 1.16, sony: 1.12, insta360: 1.18, dji: 1.12, nikon: 1.0, fujifilm: 1.02, panasonic: 0.94 },
+      geo: [[-168,65],[-166,60],[-160,58],[-154,59],[-148,60],[-142,60],[-136,58],[-132,54],[-128,51],[-124,48],[-124,44],[-122,40],[-120,35],[-117,32],[-114,30],[-111,25],[-106,23],[-103,20],[-97,16],[-92,15],[-88,16],[-87,21],[-90,21],[-94,18],[-97,21],[-97,26],[-94,29],[-90,29],[-89,30],[-85,30],[-82,28],[-80,25],[-81,31],[-79,34],[-76,37],[-73,40],[-70,42],[-67,45],[-64,47],[-59,47],[-53,49],[-56,52],[-62,55],[-66,58],[-70,62],[-76,64],[-80,68],[-85,70],[-95,72],[-105,73],[-115,72],[-125,71],[-135,70],[-145,70],[-155,71],[-163,69],[-168,65]]
+    },
+    {
+      id: 'europe', name: '欧洲', en: 'EUROPE', short: '欧洲',
+      weight: 0.18, x: 0.47, y: 0.27, w: 120, h: 100,
+      desc: '审美驱动市场，复古与色彩科学在这里溢价最高。',
+      bias: { fujifilm: 1.28, panasonic: 1.22, nikon: 1.1, sony: 1.05, canon: 1.02, dji: 0.95, insta360: 1.0 },
+      geo: [[-10,36],[-9,39],[-9,43],[-4,44],[-2,46],[-2,48],[2,51],[4,52],[6,53],[8,54],[9,57],[11,58],[13,55],[13,54],[18,55],[21,56],[24,59],[26,60],[29,60],[30,63],[31,66],[27,70],[22,70],[18,69],[15,67],[12,65],[10,63],[7,61],[5,59],[6,57],[8,55],[10,54],[12,52],[15,50],[19,49],[22,48],[26,48],[29,46],[32,46],[35,45],[38,47],[40,49],[39,53],[36,55],[33,56],[30,58],[27,59],[24,57],[20,56],[17,54],[14,51],[11,48],[8,46],[4,44],[1,42],[-2,41],[-5,38],[-9,37],[-10,36]]
+    },
+    {
+      id: 'latin_america', name: '拉丁美洲', en: 'LATIN AMERICA', short: '拉美',
+      weight: 0.09, x: 0.25, y: 0.68, w: 110, h: 100,
+      desc: '价格敏感市场，入门机型与渠道覆盖决定份额。',
+      bias: { canon: 1.3, sony: 1.1, nikon: 1.05, fujifilm: 0.95, panasonic: 0.9, dji: 1.02, insta360: 0.95 },
+      geo: [[-81,7],[-77,8],[-73,11],[-68,11],[-63,10],[-60,8],[-55,6],[-52,4],[-50,0],[-45,-2],[-40,-4],[-37,-8],[-35,-8],[-38,-13],[-39,-18],[-42,-23],[-48,-26],[-52,-32],[-56,-35],[-58,-38],[-62,-40],[-65,-45],[-68,-50],[-70,-54],[-74,-53],[-75,-49],[-74,-44],[-73,-37],[-71,-30],[-70,-23],[-70,-18],[-72,-15],[-76,-14],[-79,-6],[-81,-2],[-80,2],[-81,7]]
+    },
+    {
+      id: 'mea', name: '中东与非洲', en: 'MIDDLE EAST & AFRICA', short: '中东非',
+      weight: 0.07, x: 0.52, y: 0.58, w: 120, h: 110,
+      desc: '新兴增量市场，专业与户外题材需求增长最快。',
+      bias: { nikon: 1.2, canon: 1.15, sony: 1.05, fujifilm: 0.98, panasonic: 0.92, dji: 1.05, insta360: 0.98 },
+      geo: [[-17,21],[-16,15],[-13,9],[-8,5],[-2,5],[4,6],[9,4],[9,0],[12,-6],[13,-11],[12,-17],[15,-22],[18,-29],[22,-34],[27,-34],[32,-29],[35,-24],[40,-16],[41,-11],[40,-5],[44,0],[48,3],[51,11],[44,12],[43,15],[48,20],[54,22],[57,25],[60,30],[56,36],[50,38],[44,40],[40,42],[36,37],[33,36],[30,31],[34,29],[38,22],[43,17],[43,12],[40,15],[37,20],[33,28],[28,31],[20,32],[13,34],[7,35],[0,36],[-6,35],[-10,31],[-14,27],[-17,21]]
+    }
+  ];
+  const REGION_ORDER = REGIONS.map(r => r.id);
+  const REGION_INDEX = {};
+  REGIONS.forEach(r => { REGION_INDEX[r.id] = r; });
+
   const MARKET_EVENTS = [
     {
       id: 'retro_revival', title: '复古相机回潮', tag: '审美趋势', duration: 2,
       text: '社交平台上刮起胶片与复古相机风潮，年轻用户开始把相机当作穿搭配件。',
-      effects: { demand: { retro: 1.28, compact: 1.08 } }, tone: 'good'
+      effects: { demand: { retro: 1.28, compact: 1.08 } }, tone: 'good',
+      geo: [[-17,21],[-16,12],[-8,5],[3,6],[9,4],[12,-5],[13,-14],[18,-22],[25,-34],[33,-30],[38,-20],[41,-10],[48,-2],[52,8],[44,12],[43,16],[50,22],[57,24],[60,30],[52,36],[44,40],[36,37],[30,31],[24,32],[10,34],[0,35],[-10,30],[-17,21]]
     },
     {
       id: 'sensor_shortage', title: '先进传感器产能紧张', tag: '供应链', duration: 2,
@@ -1465,9 +1476,11 @@
     SCREEN_RES, GAMUTS, PORTS, WIRELESS, QC_TIERS, CERTIFICATIONS, CAMPAIGN_TIERS, BRAND_CAMPAIGNS,
     SENSOR_SUPPLIERS, ODM_PARTNERS, FACTORY_LEVELS, TECHS, TECH_ORDER, STAFF_ROLES,
     CHIP_LAB_LEVELS, CMOS_TARGETS, CMOS_BUDGETS, AF_ARCHITECTURES, AF_TIERS, CHIP_BUDGETS,
+    AF_COVERAGE, AF_ARCH_TEMPLATE, AF_CHIPS, AF_FOUNDATIONS, AF_FOUNDATION_NAMES, CMOS_SENSORS,
+    AF_STAGES, AF_INCIDENTS,
     LAUNCH_FORMATS, LAUNCH_CITIES, PRESS_TIERS, KOL_TIERS, EVENT_FOCUS, PREORDER_OPTIONS,
     STARTUP_STYLES, DIFFICULTIES, ARCHETYPES, LENS_TYPES, LENS_TYPES_ARRAY, LENS_MATERIALS, LENS_STYLES,
     LENS_STYLES_ARRAY, LENS_COATINGS, LENS_MOTORS, COMPANIES, AI_SERIES, MARKET_EVENTS,
-    INITIAL_NEWS, MILESTONES
+    INITIAL_NEWS, MILESTONES, REGIONS, REGION_ORDER, REGION_INDEX
   };
 })();

@@ -1,9 +1,9 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title FRAME / CAMERA COMPANY SIMULATOR v1.2
+title FRAME / CAMERA COMPANY SIMULATOR v2.0
 echo.
-echo   FRAME / CAMERA COMPANY SIMULATOR v1.2
+echo   FRAME / CAMERA COMPANY SIMULATOR v2.0
 echo   Reference-driven industrial design, 2026
 echo.
 echo   [1] Desktop app  (recommended, full local cache support)

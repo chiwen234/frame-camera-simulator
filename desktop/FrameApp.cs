@@ -101,13 +101,16 @@ namespace FrameCameraCompany
             BackColor = Color.FromArgb(11, 13, 11);
             ForeColor = Color.FromArgb(240, 237, 228);
             StartPosition = FormStartPosition.CenterScreen;
-            MinimumSize = new Size(1024, 700);
+            MinimumSize = new Size(1280, 800);
             AutoScaleMode = AutoScaleMode.Dpi;
             KeyPreview = true;
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
 
             ApplySavedWindowState();
+            // 默认最大化：避免窗口四周露出桌面，看起来"没有全屏"
+            WindowState = FormWindowState.Maximized;
             BuildInterface();
+            Application.AddMessageFilter(new F11Filter(this));
             Load += MainForm_Load;
             FormClosing += MainForm_FormClosing;
             KeyDown += MainForm_KeyDown;
@@ -162,6 +165,8 @@ namespace FrameCameraCompany
                 core.Settings.IsSwipeNavigationEnabled = false;
                 core.Settings.IsGeneralAutofillEnabled = false;
                 core.Settings.IsPasswordAutosaveEnabled = false;
+                // 跟随系统 DPI 渲染，避免被位图拉伸
+                try { webView.ZoomFactor = 1.2; } catch { }  // 2.5K 屏下整体放大，文字更易读
 
                 core.SetVirtualHostNameToFolderMapping("frame.local", appFolder, CoreWebView2HostResourceAccessKind.Allow);
 
@@ -225,21 +230,59 @@ namespace FrameCameraCompany
             }
         }
 
+
+        // 全局捕获 F11：WebView2 会吞掉键盘事件，所以用消息过滤器
+        private sealed class F11Filter : IMessageFilter
+        {
+            private readonly MainForm owner;
+            public F11Filter(MainForm form) { owner = form; }
+            public bool PreFilterMessage(ref Message m)
+            {
+                const int WM_KEYDOWN = 0x0100;
+                const int VK_F11 = 0x7A;
+                if (m.Msg == WM_KEYDOWN && m.WParam.ToInt32() == VK_F11)
+                {
+                    owner.ToggleFullscreen();
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        private bool borderless = false;
+
+        public void ToggleFullscreen()
+        {
+            borderless = !borderless;
+            if (borderless)
+            {
+                // 先退出最大化再改边框，避免闪烁
+                WindowState = FormWindowState.Normal;
+                FormBorderStyle = FormBorderStyle.None;
+                WindowState = FormWindowState.Maximized;
+            }
+            else
+            {
+                FormBorderStyle = FormBorderStyle.Sizable;
+                WindowState = FormWindowState.Maximized;
+            }
+        }
+
         private void MainForm_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.F11 && !initializing)
             {
-                FormBorderStyle = FormBorderStyle == FormBorderStyle.None ? FormBorderStyle.Sizable : FormBorderStyle.None;
-                WindowState = FormBorderStyle == FormBorderStyle.None ? FormWindowState.Maximized : FormWindowState.Normal;
+                ToggleFullscreen();
                 e.Handled = true;
             }
         }
 
         private void ApplySavedWindowState()
         {
+            // 用 DPI 感知后的物理像素工作区，2.5K 屏即 2560x1440
             Rectangle work = Screen.PrimaryScreen.WorkingArea;
-            int width = Math.Min(1600, Math.Max(1024, work.Width - 80));
-            int height = Math.Min(1000, Math.Max(700, work.Height - 80));
+            int width = Math.Min(2560, Math.Max(1280, work.Width));
+            int height = Math.Min(1440, Math.Max(800, work.Height));
             try
             {
                 if (File.Exists(stateFile))
@@ -249,8 +292,8 @@ namespace FrameCameraCompany
                     if (parts.Length >= 2 && int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out savedWidth) &&
                         int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out savedHeight))
                     {
-                        if (savedWidth >= 1024 && savedWidth <= 3200) width = savedWidth;
-                        if (savedHeight >= 700 && savedHeight <= 2200) height = savedHeight;
+                        if (savedWidth >= 1280 && savedWidth <= 4096) width = savedWidth;
+                        if (savedHeight >= 800 && savedHeight <= 2400) height = savedHeight;
                     }
                 }
             }
@@ -263,7 +306,7 @@ namespace FrameCameraCompany
             try
             {
                 Rectangle bounds = WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
-                File.WriteAllText(stateFile, bounds.Width.ToString(CultureInfo.InvariantCulture) + "," + bounds.Height.ToString(CultureInfo.InvariantCulture), Encoding.UTF8);
+                File.WriteAllText(stateFile, bounds.Width.ToString(CultureInfo.InvariantCulture) + "," + bounds.Height.ToString(CultureInfo.InvariantCulture) + "," + (borderless ? "1" : "0"), Encoding.UTF8);
             }
             catch { }
         }
