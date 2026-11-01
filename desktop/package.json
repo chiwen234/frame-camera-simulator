@@ -1,0 +1,10 @@
+{
+  "name": "frame-camera-company",
+  "productName": "FRAME 相机公司模拟器",
+  "version": "1.0.0",
+  "description": "FRAME · Camera Company Simulator — 现代影像产业经营沙盒",
+  "main": "main.js",
+  "private": true,
+  "author": "FRAME",
+  "license": "UNLICENSED"
+}

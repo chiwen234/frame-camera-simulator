@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d0b">
+  <meta name="description" content="FRAME · 相机公司模拟器 — 从工业设计到全球市场的现代影像公司经营沙盒。">
+  <title>FRAME · 相机公司模拟器</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d0f0d'/%3E%3Ccircle cx='32' cy='32' r='18' fill='none' stroke='%23d8a65a' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='9' fill='none' stroke='%23f3efe4' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='3' fill='%23d8a65a'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css?v=20261102">
+  <link rel="stylesheet" href="css/art.css?v=20261102">
+</head>
+<body>
+  <div id="boot-root"></div>
+  <div id="app" class="app is-hidden" aria-hidden="true">
+    <aside id="sidebar" class="sidebar" aria-label="主导航"></aside>
+    <div class="app-main">
+      <header id="topbar" class="topbar"></header>
+      <main id="view" class="view" tabindex="-1"></main>
+    </div>
+    <div id="sidebar-scrim" class="sidebar-scrim" data-action="close-sidebar"></div>
+  </div>
+  <div id="modal-root"></div>
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+  <div id="drag-layer" class="drag-layer is-hidden"></div>
+  <noscript>
+    <div style="padding:40px;color:#f0ede4;background:#0b0d0b;font-family:sans-serif;min-height:100vh">
+      《相机公司模拟器》需要启用 JavaScript 才能运行。
+    </div>
+  </noscript>
+  <script src="js/data.js?v=20261102"></script>
+  <script src="js/engine.js?v=20261102"></script>
+  <script src="js/artdata.js?v=20261102"></script>
+  <script src="js/artlib.js?v=20261102"></script>
+  <script src="js/art3d.js?v=20261102"></script>
+  <script src="js/photodata.js?v=20261102"></script>
+  <script src="js/photolib.js?v=20261102"></script>
+  <script src="js/preview.js?v=20261102"></script>
+  <script src="js/ui.js?v=20261102"></script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;width:1024px;height:1024px;background:transparent;overflow:hidden}svg{width:1024px;height:1024px;display:block}</style></head><body><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg" cx="34%" cy="26%" r="85%">
+      <stop offset="0" stop-color="#252a23"/>
+      <stop offset=".52" stop-color="#141813"/>
+      <stop offset="1" stop-color="#090b09"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f2d49b"/>
+      <stop offset=".38" stop-color="#d8a65a"/>
+      <stop offset=".72" stop-color="#957136"/>
+      <stop offset="1" stop-color="#e8c98e"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4b5048"/>
+      <stop offset=".4" stop-color="#252925"/>
+      <stop offset=".7" stop-color="#141714"/>
+      <stop offset="1" stop-color="#343a32"/>
+    </linearGradient>
+    <radialGradient id="glass" cx="38%" cy="32%" r="76%">
+      <stop offset="0" stop-color="#3b625d"/>
+      <stop offset=".38" stop-color="#1c3533"/>
+      <stop offset=".75" stop-color="#0b1818"/>
+      <stop offset="1" stop-color="#050a09"/>
+    </radialGradient>
+    <linearGradient id="bladeA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e5d5b2"/>
+      <stop offset=".55" stop-color="#b89961"/>
+      <stop offset="1" stop-color="#6e5b38"/>
+    </linearGradient>
+    <linearGradient id="bladeB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8d9a87"/>
+      <stop offset=".6" stop-color="#59665b"/>
+      <stop offset="1" stop-color="#303a32"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <g clip-path="inset(0 round 220)">
+    <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+    <circle cx="370" cy="285" r="360" fill="#7f8a6e" opacity=".12" filter="url(#soft)"/>
+    <path d="M80 760 C300 660 700 900 944 700" fill="none" stroke="#d8a65a" stroke-width="2" opacity=".08"/>
+
+    <!-- outer camera/lens body -->
+    <circle cx="512" cy="522" r="378" fill="#060806" opacity=".55"/>
+    <circle cx="512" cy="508" r="365" fill="#181b17" stroke="#080a07" stroke-width="16"/>
+    <circle cx="512" cy="508" r="349" fill="none" stroke="url(#rim)" stroke-width="10" opacity=".94"/>
+    <circle cx="512" cy="508" r="332" fill="none" stroke="#545a4f" stroke-width="3" opacity=".5"/>
+
+    <!-- knurling -->
+    <g stroke="#707568" stroke-width="7" stroke-linecap="round" opacity=".46">
+      <path d="M512 138v22"/><path d="M512 856v22"/>
+      <path d="M142 508h22"/><path d="M860 508h22"/>
+      <path d="M250 246l16 16"/><path d="M758 754l16 16"/>
+      <path d="M250 770l16-16"/><path d="M758 262l16-16"/>
+    </g>
+    <circle cx="512" cy="508" r="298" fill="url(#metal)" stroke="#080a08" stroke-width="14"/>
+    <circle cx="512" cy="508" r="277" fill="#070a09" stroke="#6b705f" stroke-width="7" opacity=".9"/>
+    <circle cx="512" cy="508" r="260" fill="#050807"/>
+
+    <!-- aperture blades -->
+    <g stroke="#10120f" stroke-width="7" stroke-linejoin="round">
+      <path d="M512 258 A250 250 0 0 1 728 383 L655 425 A156 156 0 0 0 512 348 Z" fill="url(#bladeA)" opacity=".96"/>
+      <path d="M728 383 A250 250 0 0 1 728 633 L655 591 A156 156 0 0 0 655 425 Z" fill="url(#bladeB)" opacity=".88"/>
+      <path d="M728 633 A250 250 0 0 1 512 758 L512 668 A156 156 0 0 0 655 591 Z" fill="url(#bladeA)" opacity=".92"/>
+      <path d="M512 758 A250 250 0 0 1 296 633 L369 591 A156 156 0 0 0 512 668 Z" fill="url(#bladeB)" opacity=".88"/>
+      <path d="M296 633 A250 250 0 0 1 296 383 L369 425 A156 156 0 0 0 369 591 Z" fill="url(#bladeA)" opacity=".96"/>
+      <path d="M296 383 A250 250 0 0 1 512 258 L512 348 A156 156 0 0 0 369 425 Z" fill="url(#bladeB)" opacity=".88"/>
+    </g>
+
+    <!-- inner glass -->
+    <circle cx="512" cy="508" r="154" fill="#050908" stroke="#0a0c09" stroke-width="8"/>
+    <circle cx="512" cy="508" r="146" fill="url(#glass)"/>
+    <circle cx="512" cy="508" r="146" fill="none" stroke="url(#rim)" stroke-width="7" opacity=".75"/>
+    <path d="M420 440 C456 389 530 370 591 396" fill="none" stroke="#b9d4c9" stroke-width="12" stroke-linecap="round" opacity=".36"/>
+    <path d="M612 580 C575 628 516 645 463 631" fill="none" stroke="#7fa79b" stroke-width="7" stroke-linecap="round" opacity=".25"/>
+    <circle cx="467" cy="460" r="27" fill="#e8f4ea" opacity=".12" filter="url(#glow)"/>
+
+    <!-- frame index mark -->
+    <rect x="472" y="804" width="80" height="18" rx="9" fill="url(#rim)" filter="url(#glow)"/>
+    <circle cx="512" cy="508" r="360" fill="none" stroke="#fff4d7" stroke-width="2" opacity=".12"/>
+
+    <!-- screws -->
+    <g fill="#0c0e0b" stroke="#5c6155" stroke-width="3">
+      <circle cx="232" cy="508" r="12"/><circle cx="792" cy="508" r="12"/>
+      <circle cx="512" cy="228" r="12"/><circle cx="512" cy="788" r="12"/>
+    </g>
+  </g>
+</svg>
+</body></html>

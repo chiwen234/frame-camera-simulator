@@ -1,0 +1,17 @@
+# 桌面版运行时缓存（WebView2 / Edge 用户数据，含 Cookie、缓存，禁止提交）
+desktop-app/user-data/
+
+# 桌面版打包产物（exe + app/ 网页副本）：体积大且与根目录重复，
+# 完整可运行包见 GitHub Releases 中的 FRAME-Camera-Simulator-portable.zip
+desktop-app/
+
+# 日志与临时文件
+*.log
+installer/setup-error.log
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
